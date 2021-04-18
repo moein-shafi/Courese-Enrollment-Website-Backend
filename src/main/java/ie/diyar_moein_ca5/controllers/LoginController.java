@@ -29,7 +29,7 @@ public class LoginController {
         return response;
     }
 
-    @DeleteMapping("/login", produces = MediaType.APPLICATION_JSON_VALUE)
+    @DeleteMapping(value ="/login", produces = MediaType.APPLICATION_JSON_VALUE)
     public HashMap<String, String> hello() {
         Database database = Database.getDatabase();
         HashMap<String, String> response = new HashMap<>();
