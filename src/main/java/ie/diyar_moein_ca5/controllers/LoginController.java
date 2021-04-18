@@ -14,7 +14,7 @@ import java.util.HashMap;
 public class LoginController {
 
     @PostMapping(value = "/login", produces = MediaType.APPLICATION_JSON_VALUE)
-    public HashMap<String, String> hello(@RequestParam(value = "studentId") String studentId) {
+    public HashMap<String, String> login(@RequestParam(value = "studentId") String studentId) {
         Database database = Database.getDatabase();
         HashMap<String, String> response = new HashMap<>();
         try {
@@ -30,7 +30,7 @@ public class LoginController {
     }
 
     @DeleteMapping(value ="/login", produces = MediaType.APPLICATION_JSON_VALUE)
-    public HashMap<String, String> hello() {
+    public HashMap<String, String> logout() {
         Database database = Database.getDatabase();
         HashMap<String, String> response = new HashMap<>();
         database.logout();
