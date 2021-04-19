@@ -295,4 +295,3 @@ public class Student {
         if (this.addedOfferings.containsKey(course.getCode()))
             this.addedOfferings.get(course.getCode()).changeWaitingToFalse();   }
     }
-
