@@ -1,5 +1,6 @@
 package ie.diyar_moein_ca5.controllers.models;
 
+import ie.diyar_moein_ca5.Classes.Database;
 import ie.diyar_moein_ca5.Classes.Student;
 
 import java.util.HashMap;
@@ -10,7 +11,10 @@ public class ProfileModel {
     private Integer code;
     private String message;
 
-    public ProfileModel(Student student) {
+    public ProfileModel() {
+        Database database = Database.getDatabase();
+        student = database.getCurrentStudent();
+
         if (student == null)
         {
             code = 404;
@@ -20,7 +24,6 @@ public class ProfileModel {
         else {
             code = 200;
             message = "profile data is ready.";
-            this.student = student;
             for (HashMap<String, Double> grades : student.getTermGrades().values()) {
                 for (String code : grades.keySet()) {
                     if (grades.get(code) < 10)

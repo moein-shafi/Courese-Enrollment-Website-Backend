@@ -12,6 +12,6 @@ public class ProfileController {
     @PostMapping(value = "/profile", produces = MediaType.APPLICATION_JSON_VALUE)
     public ProfileModel profile() {
         Database database = Database.getDatabase();
-        return new ProfileModel(database.getCurrentStudent());
+        return new ProfileModel();
     }
 }

@@ -14,7 +14,7 @@ import java.util.HashMap;
 public class PlanController {
 
     @PostMapping(value = "/plan", produces = MediaType.APPLICATION_JSON_VALUE)
-    public HashMap<String, HashMap<String, String>> plan() {
+    public static HashMap<String, HashMap<String, String>> plan() {
         HashMap<String, HashMap<String, String>> weeklyPlan = new HashMap<>();
         Database database = Database.getDatabase();
         Student student = database.getCurrentStudent();
