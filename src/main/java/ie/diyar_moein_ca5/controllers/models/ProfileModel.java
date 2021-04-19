@@ -21,10 +21,12 @@ public class ProfileModel {
             code = 200;
             message = "profile data is ready.";
             this.student = student;
-            for (String code : student.getGrades().keySet()) {
-                if (student.getGrades().get(code) < 10)
-                    continue;
-                passedCourses.put(code, student.getGrades().get(code));
+            for (HashMap<String, Double> grades : student.getTermGrades().values()) {
+                for (String code : grades.keySet()) {
+                    if (grades.get(code) < 10)
+                        continue;
+                    passedCourses.put(code, grades.get(code));
+                }
             }
         }
     }

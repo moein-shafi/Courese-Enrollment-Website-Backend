@@ -23,16 +23,16 @@ import java.util.Map;
 
 
 public class Database {
-    ArrayList<ie.diyar_moein_ca5.Classes.Student> students;
+    ArrayList<Student> students;
     ArrayList<Course> courses;
     ObjectMapper objectMapper;
-    ie.diyar_moein_ca5.Classes.Student currentStudent = null;
+    Student currentStudent = null;
     String searchKey = "";
     String errorMessage = "";
     private static Database database;
 
     private Database() {
-        students = new ArrayList<ie.diyar_moein_ca5.Classes.Student>();
+        students = new ArrayList<Student>();
         courses = new ArrayList<Course>();
         objectMapper = new ObjectMapper();
     }
@@ -71,7 +71,7 @@ public class Database {
         this.currentStudent = database.getStudent(studentId);
     }
 
-    public ie.diyar_moein_ca5.Classes.Student getCurrentStudent() {
+    public Student getCurrentStudent() {
         return this.currentStudent;
     }
 
@@ -105,13 +105,25 @@ public class Database {
     }
 
     public void getGradesFromAPI() throws Exception {
-        for (ie.diyar_moein_ca5.Classes.Student student:students){
+        for (Student student:students){
             String response = sendGetRequestToURL("http://138.197.181.131:5100/api/grades/"+student.getStudentId());
             JsonNode jsonNode = objectMapper.readTree(response);
+            HashMap<String, Double> grades = new HashMap<>();
+            HashMap<Integer, HashMap<String, Double>> termGrades = new HashMap<>();
             for (int i = 0; i < jsonNode.size(); i++)
             {
-                student.addGrade(jsonNode.get(i).get("code").asText(), jsonNode.get(i).get("grade").asDouble());
+                Integer termNumber = jsonNode.get(i).get("term").asInt();
+                String courseCode = jsonNode.get(i).get("code").asText();
+                Double grade = jsonNode.get(i).get("grade").asDouble();
+                if (termGrades.containsKey(termNumber)) {
+                    termGrades.get(termNumber).put(courseCode, grade);
+                }
+                else {
+                    grades.put(courseCode, grade);
+                    termGrades.put(termNumber, grades);
+                }
             }
+            student.addTermGrade(termGrades);
             student.calculateGpa();
         }
     }
@@ -143,7 +155,7 @@ public class Database {
         } catch (Exception e) {
             return createJsonOutput("false", "Your input was in wrong format!");
         }
-        ie.diyar_moein_ca5.Classes.Student student = new ie.diyar_moein_ca5.Classes.Student(studentId, name, secondName, birthDate, field, faculty, level, status, img);
+        Student student = new Student(studentId, name, secondName, birthDate, field, faculty, level, status, img);
         if (checkStudentIdRepeating(studentId)) {
             this.students.add(student);
             return createJsonOutput("true", "Classes.Student '" + studentId + "' successfully added.");
@@ -153,7 +165,7 @@ public class Database {
 
     public boolean checkStudentIdRepeating(String studentId)
     {
-        for (ie.diyar_moein_ca5.Classes.Student student : this.students)
+        for (Student student : this.students)
             if (student.getStudentId().equals(studentId))
                 return false;
         return true;
@@ -218,12 +230,12 @@ public class Database {
         return jsonOutput;
     }
 
-    public void addToWeeklySchedule(ie.diyar_moein_ca5.Classes.Student student, Course course) throws Exception {
+    public void addToWeeklySchedule(Student student, Course course) throws Exception {
             student.addToWeeklySchedule(course, false);
     }
 
-    public ie.diyar_moein_ca5.Classes.Student getStudent(String studentId) throws StudentNotFoundException {
-        for (ie.diyar_moein_ca5.Classes.Student s: this.students)
+    public Student getStudent(String studentId) throws StudentNotFoundException {
+        for (Student s: this.students)
         {
             if (s.getStudentId().equals(studentId))
                 return s;
@@ -235,6 +247,15 @@ public class Database {
         for (Course c: this.courses)
         {
             if (c.getCode().equals(code) && c.getClassCode().equals(classCode))
+                return c;
+        }
+        throw new CourseNotFoundException();
+    }
+
+    public Course getCourse(String code) throws CourseNotFoundException {
+        for (Course c: this.courses)
+        {
+            if (c.getCode().equals(code))
                 return c;
         }
         throw new CourseNotFoundException();

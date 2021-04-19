@@ -15,12 +15,25 @@ public class Student {
     private float gpa;
     private int totalPassedUnits;
     private HashMap<String, AddedOffering> addedOfferings = new HashMap<>();
-    private HashMap<String, Double> grades = new HashMap<>();
+    private HashMap<Integer, HashMap<String, Double>> termGrades = new HashMap<>();
+    private HashMap<Integer, Double> termGpa = new HashMap<>();
     private String field;
     private String faculty;
     private String level;
     private String status;
     private String img;
+
+    public HashMap<Integer, HashMap<String, Double>> getTermGrades() {
+        return termGrades;
+    }
+
+    public HashMap<Integer, Double> getTermGpa() {
+        return termGpa;
+    }
+
+    public void addTermGrade(HashMap<Integer, HashMap<String, Double>> termGrades) {
+        this.termGrades = termGrades;
+    }
 
     public float getGpa() {
         return gpa;
@@ -57,15 +70,6 @@ public class Student {
 
     public HashMap<String, AddedOffering> getAddedOfferings() {
         return addedOfferings;
-    }
-
-    public void addGrade(String code, Double grade) {
-        grades.put(code, grade);
-    }
-
-    public HashMap<String, Double> getGrades() {
-        return grades;
-
     }
 
     public int getUnits() {
@@ -231,13 +235,20 @@ public class Student {
     public void calculateGpa() throws CourseNotFoundException {
         Integer units, total_units = 0;
         Double sum_of_grades = 0.0;
-        for (String code : grades.keySet()) {
-            units = Database.getDatabase().getCourse(code, "01").getUnits();
-            if (grades.get(code) >= 10)
-                totalPassedUnits += units;
+        for (Integer termNumber : this.termGrades.keySet()) {
+            Integer term_units = 0;
+            Double sum_of_term_grades = 0.0;
+            for (String code : this.termGrades.get(termNumber).keySet()) {
+                units = Database.getDatabase().getCourse(code).getUnits();
+                if (this.termGrades.get(termNumber).get(code) >= 10)
+                    totalPassedUnits += units;
 
-            total_units += units;
-            sum_of_grades += grades.get(code) * units;
+                total_units += units;
+                term_units += units;
+                sum_of_term_grades += this.termGrades.get(termNumber).get(code) * units;
+                sum_of_grades += this.termGrades.get(termNumber).get(code) * units;
+            }
+            this.termGpa.put(termNumber, (double) (sum_of_term_grades / term_units));
         }
         this.gpa = (float) (sum_of_grades / total_units);
     }
@@ -249,20 +260,25 @@ public class Student {
             if (offering.isWantsToRemove())
                 continue;
             for (String prerequisite : course.getPrerequisites()) {
-                if (grades.containsKey(prerequisite)) {
-                    if (grades.get(prerequisite) < 10) {
+
+                for (HashMap<String, Double> grades : this.termGrades.values()) {
+                    if (grades.containsKey(prerequisite)) {
+                        if (grades.get(prerequisite) < 10) {
+                            throw new PrerequisiteException(course.getName());
+                        }
+                    } else {
                         throw new PrerequisiteException(course.getName());
                     }
-                } else {
-                    throw new PrerequisiteException(course.getName());
                 }
+
             }
 
             if (course.getSignedUp() >= course.getCapacity())
                 throw new CourseCapacityException(course.getName());
 
-            if (grades.containsKey(course.getCode()))
-                throw new AlreadyPassedCourseException(course.getName());
+            for (HashMap<String, Double> grades : this.termGrades.values())
+                if (grades.containsKey(course.getCode()))
+                    throw new AlreadyPassedCourseException(course.getName());
 
             totalUnits += course.getUnits();
         }
@@ -274,9 +290,9 @@ public class Student {
 
         return true;
     }
+
     public void removeWaitingStatus(Course course) {
         if (this.addedOfferings.containsKey(course.getCode()))
-            this.addedOfferings.get(course.getCode()).changeWaitingToFalse();
-    }
+            this.addedOfferings.get(course.getCode()).changeWaitingToFalse();   }
     }
 
