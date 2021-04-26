@@ -18,7 +18,7 @@ public class CourseModel {
         Database database = Database.getDatabase();
         student = database.getCurrentStudent();
         if (student == null) {
-            code = 404;
+            code = 401;
             message = "login first!";
         } else {
             code = 200;

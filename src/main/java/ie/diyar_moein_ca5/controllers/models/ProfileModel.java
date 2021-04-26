@@ -17,7 +17,7 @@ public class ProfileModel {
 
         if (student == null)
         {
-            code = 404;
+            code = 401;
             message = "login first!";
         }
 
