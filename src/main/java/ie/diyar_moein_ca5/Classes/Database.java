@@ -108,7 +108,6 @@ public class Database {
         for (Student student:students){
             String response = sendGetRequestToURL("http://138.197.181.131:5100/api/grades/"+student.getStudentId());
             JsonNode jsonNode = objectMapper.readTree(response);
-            HashMap<String, Double> grades = new HashMap<>();
             HashMap<Integer, HashMap<String, Double>> termGrades = new HashMap<>();
             for (int i = 0; i < jsonNode.size(); i++)
             {
@@ -119,6 +118,7 @@ public class Database {
                     termGrades.get(termNumber).put(courseCode, grade);
                 }
                 else {
+                    HashMap<String, Double> grades = new HashMap<>();
                     grades.put(courseCode, grade);
                     termGrades.put(termNumber, grades);
                 }

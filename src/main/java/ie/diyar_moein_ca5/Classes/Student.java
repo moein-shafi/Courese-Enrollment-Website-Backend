@@ -249,6 +249,8 @@ public class Student {
                 sum_of_grades += this.termGrades.get(termNumber).get(code) * units;
             }
             this.termGpa.put(termNumber, (double) (sum_of_term_grades / term_units));
+            term_units = 0;
+            sum_of_term_grades = 0.0;
         }
         this.gpa = (float) (sum_of_grades / total_units);
     }
