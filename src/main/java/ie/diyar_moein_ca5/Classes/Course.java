@@ -34,7 +34,7 @@ public class Course {
         this.units = units;
         this.classDays.addAll(classDays);
         this.classTime = classTime;
-        this.capacity = capacity;
+        this.capacity = capacity + 1;
         this.signedUp = 0;
         this.prerequisites.addAll(prerequisites);
         this.examTime = new HashMap<String, LocalDateTime>(examTime);   // it makes shallow copy
