@@ -261,6 +261,10 @@ public class Student {
             Course course = offering.getCourse();
             if (offering.isWantsToRemove())
                 continue;
+            if (offering.getFinalized() == Status.finalized) {
+                totalUnits += course.getUnits();
+                continue;
+            }
             for (String prerequisite : course.getPrerequisites()) {
 
                 for (HashMap<String, Double> grades : this.termGrades.values()) {

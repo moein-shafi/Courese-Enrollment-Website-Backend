@@ -90,6 +90,8 @@ public class CourseController {
                 for (Student.AddedOffering offering : student.getAddedOfferings().values()) {
                     if (offering.isWantsToRemove())
                         forDeleteCourses.add(offering.getCourse().getCode());
+                    else if (offering.getFinalized() == Student.Status.finalized)
+                        continue;
                     else
                         offering.makeFinalize();
                 }
