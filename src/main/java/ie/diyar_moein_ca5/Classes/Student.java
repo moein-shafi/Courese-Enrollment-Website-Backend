@@ -275,12 +275,12 @@ public class Student {
 
             }
 
-            if (course.getSignedUp() >= course.getCapacity())
-                throw new CourseCapacityException(course.getName());
-
             for (HashMap<String, Double> grades : this.termGrades.values())
                 if (grades.containsKey(course.getCode()))
                     throw new AlreadyPassedCourseException(course.getName());
+
+            if (course.getSignedUp() >= course.getCapacity())
+                throw new CourseCapacityException(course.getName());
 
             totalUnits += course.getUnits();
         }
