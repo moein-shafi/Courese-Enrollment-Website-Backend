@@ -8,13 +8,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.sql.SQLException;
 import java.util.HashMap;
 
 @RestController
 public class LoginController {
 
     @PostMapping(value = "/login", produces = MediaType.APPLICATION_JSON_VALUE)
-    public HashMap<String, String> login(@RequestParam(value = "studentId") String studentId) {
+    public HashMap<String, String> login(@RequestParam(value = "studentId") String studentId) throws SQLException {
         Database database = Database.getDatabase();
         HashMap<String, String> response = new HashMap<>();
         try {
@@ -30,7 +31,7 @@ public class LoginController {
     }
 
     @DeleteMapping(value ="/login", produces = MediaType.APPLICATION_JSON_VALUE)
-    public HashMap<String, String> logout() {
+    public HashMap<String, String> logout() throws SQLException {
         Database database = Database.getDatabase();
         HashMap<String, String> response = new HashMap<>();
         database.logout();

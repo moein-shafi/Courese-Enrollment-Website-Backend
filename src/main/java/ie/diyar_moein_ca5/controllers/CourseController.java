@@ -8,6 +8,7 @@ import ie.diyar_moein_ca5.controllers.models.CourseModel;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -17,7 +18,7 @@ public class CourseController {
     public HashMap<String, String> AddCourse(
             @RequestParam(value = "courseCode") String courseCode,
             @RequestParam(value = "classCode") String classCode,
-            @RequestParam(value = "isWaiting", defaultValue = "false") boolean isWaiting) {
+            @RequestParam(value = "isWaiting", defaultValue = "false") boolean isWaiting) throws SQLException {
 
         Database database = Database.getDatabase();
         HashMap<String, String> response = new HashMap<>();
@@ -58,7 +59,7 @@ public class CourseController {
     }
 
     @DeleteMapping(value = "/course", produces = MediaType.APPLICATION_JSON_VALUE)
-    public HashMap<String, String> RemoveCourse(@RequestParam(value = "courseCode") String courseCode) {
+    public HashMap<String, String> RemoveCourse(@RequestParam(value = "courseCode") String courseCode) throws SQLException {
         Database database = Database.getDatabase();
         Student student = database.getCurrentStudent();
         Student.AddedOffering offering = student.getAddedOfferings().get(courseCode);
@@ -71,13 +72,13 @@ public class CourseController {
     }
 
     @GetMapping(value = "/course", produces = MediaType.APPLICATION_JSON_VALUE)
-    public CourseModel course() {
+    public CourseModel course() throws SQLException {
         Database database = Database.getDatabase();
         return new CourseModel();
     }
 
     @PostMapping(value = "/course", produces = MediaType.APPLICATION_JSON_VALUE)
-    public HashMap<String, String> Submit(@RequestParam(value = "action") String action) {
+    public HashMap<String, String> Submit(@RequestParam(value = "action") String action) throws SQLException {
         Database database = Database.getDatabase();
         HashMap<String, String> response = new HashMap<>();
         String message = "Successfully submitted.";

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.io.Resources;
 import ie.diyar_moein_ca5.Exceptions.*;
+import ie.diyar_moein_ca5.repository.ConnectionPool;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
@@ -16,6 +17,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,8 +33,10 @@ public class Database {
     String searchKey = "";
     String errorMessage = "";
     private static Database database;
+    Connection connection;
 
-    private Database() {
+    private Database() throws SQLException {
+        connection = ConnectionPool.getConnection();
         students = new ArrayList<Student>();
         courses = new ArrayList<Course>();
         objectMapper = new ObjectMapper();
@@ -45,7 +50,7 @@ public class Database {
         this.errorMessage = message;
     }
 
-    public static Database getDatabase() {
+    public static Database getDatabase() throws SQLException {
         if (database == null) {
             database = new Database();
             try {

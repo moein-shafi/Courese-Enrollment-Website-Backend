@@ -8,11 +8,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.sql.SQLException;
+
 @RestController
 public class ProfileController {
 
     @GetMapping(value = "/profile", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ProfileModel profile() throws CourseNotFoundException {
+    public ProfileModel profile() throws CourseNotFoundException, SQLException {
         Database database = Database.getDatabase();
         return new ProfileModel();
     }

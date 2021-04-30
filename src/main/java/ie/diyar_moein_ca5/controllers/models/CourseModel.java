@@ -4,6 +4,7 @@ import ie.diyar_moein_ca5.Classes.Course;
 import ie.diyar_moein_ca5.Classes.Database;
 import ie.diyar_moein_ca5.Classes.Student;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -14,7 +15,7 @@ public class CourseModel {
     private Integer code;
     private String message;
 
-    public CourseModel() {
+    public CourseModel() throws SQLException {
         Database database = Database.getDatabase();
         student = database.getCurrentStudent();
         if (student == null) {

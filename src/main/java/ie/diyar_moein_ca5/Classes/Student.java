@@ -2,6 +2,7 @@ package ie.diyar_moein_ca5.Classes;
 
 import ie.diyar_moein_ca5.Exceptions.*;
 
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.HashMap;
@@ -232,7 +233,7 @@ public class Student {
         return finalizedUnits;
     }
 
-    public void calculateGpa() throws CourseNotFoundException {
+    public void calculateGpa() throws CourseNotFoundException, SQLException {
         Integer units, total_units = 0;
         Double sum_of_grades = 0.0;
         for (Integer termNumber : this.termGrades.keySet()) {

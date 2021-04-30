@@ -7,6 +7,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -14,7 +15,7 @@ import java.util.HashMap;
 public class PlanController {
 
     @PostMapping(value = "/plan", produces = MediaType.APPLICATION_JSON_VALUE)
-    public static HashMap<String, HashMap<String, String>> plan() {
+    public static HashMap<String, HashMap<String, String>> plan() throws SQLException {
         HashMap<String, HashMap<String, String>> weeklyPlan = new HashMap<>();
         Database database = Database.getDatabase();
         Student student = database.getCurrentStudent();

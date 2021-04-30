@@ -5,6 +5,7 @@ import ie.diyar_moein_ca5.Classes.Database;
 import ie.diyar_moein_ca5.Classes.Student;
 import ie.diyar_moein_ca5.Exceptions.CourseNotFoundException;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -15,7 +16,7 @@ public class ProfileModel {
     private Integer code;
     private String message;
 
-    public ProfileModel() throws CourseNotFoundException {
+    public ProfileModel() throws CourseNotFoundException, SQLException {
         Database database = Database.getDatabase();
         student = database.getCurrentStudent();
 
