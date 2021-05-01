@@ -19,6 +19,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -34,7 +35,6 @@ public class Database {
     String searchKey = "";
     String errorMessage = "";
     private static Database database;
-    Connection connection;
     String CourseTableName = "Courses";
     String StudentTableName = "Students";
     String OfferingTableName = "Offerings";
@@ -142,7 +142,6 @@ public class Database {
         if (database == null) {
             database = new Database();
             try {
-                /// TODO: delete these.
                 database.getStudentsFromAPI();
                 database.getCoursesFromAPI();
                 database.getGradesFromAPI();
@@ -232,7 +231,7 @@ public class Database {
         }
     }
 
-    public String addStudent(String data) throws JsonProcessingException {
+    public String addStudent(String data) throws JsonProcessingException, SQLException {
         String studentId, name, secondName, birthDate, field, faculty, level, status, img;
         try {
             JsonNode jsonNode = objectMapper.readTree(data);
@@ -249,20 +248,47 @@ public class Database {
         } catch (Exception e) {
             return createJsonOutput("false", "Your input was in wrong format!");
         }
-        Student student = new Student(studentId, name, secondName, birthDate, field, faculty, level, status, img);
         if (checkStudentIdRepeating(studentId)) {
-            this.students.add(student);
+            this.addStudentToDB(studentId, name, secondName, birthDate, field, faculty, level, status, img);
             return createJsonOutput("true", "Classes.Student '" + studentId + "' successfully added.");
         }
         return createJsonOutput("false", "This 'studentId' has already been added before!");
     }
 
-    public boolean checkStudentIdRepeating(String studentId)
-    {
-        for (Student student : this.students)
-            if (student.getStudentId().equals(studentId))
-                return false;
-        return true;
+    private void addStudentToDB(String studentId, String name, String secondName,
+                                String birthDate, String field, String faculty,
+                                String level, String status, String img) throws SQLException {
+
+        Connection connection = ConnectionPool.getConnection();
+        PreparedStatement statement = connection.prepareStatement(String.format(
+                "insert into %s (studentId, name, secondName, birthDate, field, faculty, level, status, img)"
+                        + "values (?, ?, ?, ?, ?, ?, ?, ?, ?);", StudentTableName));
+        statement.setString(1, studentId);
+        statement.setString(2, name);
+        statement.setString(3, secondName);
+        statement.setString(4, birthDate);
+        statement.setString(5, field);
+        statement.setString(6, faculty);
+        statement.setString(7, level);
+        statement.setString(8, status);
+        statement.setString(9, img);
+
+        statement.executeUpdate();
+        statement.close();
+        connection.close();
+    }
+
+    public boolean checkStudentIdRepeating(String studentId) throws SQLException{
+        Connection connection = ConnectionPool.getConnection();
+        PreparedStatement statement = connection.prepareStatement(
+                String.format("select studentId from %s s where s.studentId = ?;", StudentTableName));
+        statement.setString(1, studentId);
+        ResultSet result = statement.executeQuery();
+        boolean exist = result.next();
+        result.close();
+        statement.close();
+        connection.close();
+        return !exist;
     }
 
     public String addOffering(String data) throws JsonProcessingException {
