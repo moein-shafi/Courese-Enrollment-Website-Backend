@@ -21,7 +21,7 @@ public class Course {
     private HashMap<String, LocalDateTime> examTime;
     private Integer capacity;
     private ArrayList<String> prerequisites = new ArrayList<String>();
-    private ArrayList<ie.diyar_moein_ca5.Classes.Student> waitingList = new ArrayList<ie.diyar_moein_ca5.Classes.Student>();
+    private ArrayList<Student> waitingList = new ArrayList<Student>();
 
     public Course(String code, String classCode, String name, String instructor, String type, Integer units, ArrayList<String> classDays,
                   String classTime, HashMap<String, LocalDateTime> examTime, Integer capacity,

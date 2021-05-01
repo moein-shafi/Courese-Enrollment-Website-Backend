@@ -18,6 +18,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -34,12 +35,100 @@ public class Database {
     String errorMessage = "";
     private static Database database;
     Connection connection;
+    String CourseTableName = "Courses";
+    String StudentTableName = "Students";
+    String OfferingTableName = "Offerings";
+    String AddedOfferingTableName = "AddedOfferings";
+    String PrerequisitTableName = "Prerequisites";
+    String TermTableName = "Terms";
 
     private Database() throws SQLException {
-        connection = ConnectionPool.getConnection();
+        this.initializeTablesInDB();
         students = new ArrayList<Student>();
         courses = new ArrayList<Course>();
         objectMapper = new ObjectMapper();
+    }
+
+    private void initializeTablesInDB() throws SQLException {
+        Connection connection = ConnectionPool.getConnection();
+        this.initializeStudentTable(connection);
+        this.initializeCourseTable(connection);
+        this.initializeOfferingTable(connection);
+        this.initializeAddedOfferingTable(connection);
+        this.initializeTermTable(connection);
+        this.initializePrerequisitesTable(connection);
+        connection.close();
+    }
+
+    private void initializeStudentTable(Connection connection) throws SQLException {
+        String command = String.format("CREATE TABLE IF NOT EXISTS %s", StudentTableName);
+        command += String.format("(studentId CHAR(50),\nname CHAR(225),\nsecondName CHAR(225),\nbirthDate CHAR(100),");
+        command += String.format("\nfield CHAR(100),\nfaculty CHAR(100),\nlevel CHAR(100),\nstatus CHAR(100),");
+        command += String.format("\nimg CHAR(225), \nPRIMARY KEY(studentId));");
+        PreparedStatement createStudentTableStatement = connection.prepareStatement(command);
+        createStudentTableStatement.executeUpdate();
+        createStudentTableStatement.close();
+    }
+
+    private void initializeCourseTable(Connection connection) throws SQLException {
+        String command = String.format("CREATE TABLE IF NOT EXISTS %s", CourseTableName);
+        command += String.format("(courseCode CHAR(50),\nname CHAR(225),\ntype CHAR(100),\nunits INT,");
+        command += String.format("\nexamTimeStart CHAR(100),\nexamTimeEnd CHAR(100),");
+        command += String.format("\nPRIMARY KEY(courseCode));");
+
+        PreparedStatement createCourseTableStatement = connection.prepareStatement(command);
+        createCourseTableStatement.executeUpdate();
+        createCourseTableStatement.close();
+    }
+
+    private void initializeOfferingTable(Connection connection) throws SQLException {
+        String command = String.format("CREATE TABLE IF NOT EXISTS %s", OfferingTableName);
+        command += String.format("(courseCode CHAR(50), \nclassCode CHAR(50),\ninstructor CHAR(225),");
+        command += String.format("\nfirstClassDay CHAR(100),\nsecondClassDay CHAR(100),\nclassTime CHAR(100),");
+        command += String.format("\ncapacity INT, \nPRIMARY KEY(courseCode, classCode),");
+        command += String.format("\nFOREIGN KEY (courseCode) REFERENCES %s(courseCode));", CourseTableName);
+
+        PreparedStatement createCourseTableStatement = connection.prepareStatement(command);
+        createCourseTableStatement.executeUpdate();
+        createCourseTableStatement.close();
+    }
+
+    private void initializeTermTable(Connection connection) throws SQLException {
+        String command = String.format("CREATE TABLE IF NOT EXISTS %s", TermTableName);
+        command += String.format("(courseCode CHAR(50),\ntermNumber INT,\ngrade FLOAT,");
+        command += String.format("\nPRIMARY KEY (courseCode, termNumber),");
+        command += String.format("\nFOREIGN KEY (courseCode) REFERENCES %s(courseCode));", CourseTableName);
+
+        PreparedStatement createTermTableStatement = connection.prepareStatement(command);
+        createTermTableStatement.executeUpdate();
+        createTermTableStatement.close();
+    }
+
+    private void initializeAddedOfferingTable(Connection connection) throws SQLException {
+        String command = String.format("CREATE TABLE IF NOT EXISTS %s", AddedOfferingTableName);
+        command += String.format("(courseCode CHAR(50), \nclassCode CHAR(50),\nstudentId CHAR(50),");
+        command += String.format("\nstatus CHAR(100),\nwantsToRemove BOOLEAN,\nisWaiting BOOLEAN,");
+        command += String.format("\nPRIMARY KEY(studentId, courseCode, classCode),");
+        command += String.format("\nFOREIGN KEY (courseCode) REFERENCES %s(courseCode),", CourseTableName);
+        command += String.format("\nFOREIGN KEY (classCode) REFERENCES %s(classCode),", OfferingTableName);
+        command += String.format("\nFOREIGN KEY (studentId) REFERENCES %s(studentId));", StudentTableName);
+
+        PreparedStatement createAddedOfferingTableStatement = connection.prepareStatement(command);
+        createAddedOfferingTableStatement.executeUpdate();
+        createAddedOfferingTableStatement.close();
+    }
+
+    private void initializePrerequisitesTable(Connection connection) throws SQLException {
+        String command = String.format("CREATE TABLE IF NOT EXISTS %s", PrerequisitTableName);
+        command += String.format("(mainCourseCode CHAR(50),\nid MEDIUMINT NOT NULL AUTO_INCREMENT,");
+        command += String.format("\nprerequisitCourseCode CHAR(50),");
+        command += String.format("\nPRIMARY KEY(id, mainCourseCode),");
+        command += String.format("\nFOREIGN KEY (mainCourseCode) REFERENCES %s(courseCode),", CourseTableName);
+        command += String.format("\nFOREIGN KEY (prerequisitCourseCode) REFERENCES %s(courseCode));", CourseTableName);
+
+        PreparedStatement createPrerequisitesTableStatement = connection.prepareStatement(command);
+        createPrerequisitesTableStatement.executeUpdate();
+        createPrerequisitesTableStatement.close();
     }
 
     public String getErrorMessage() {
@@ -54,6 +143,7 @@ public class Database {
         if (database == null) {
             database = new Database();
             try {
+                /// TODO: delete these.
                 database.getStudentsFromAPI();
                 database.getCoursesFromAPI();
                 database.getGradesFromAPI();
