@@ -109,8 +109,7 @@ public class Database {
         command += String.format("(courseCode CHAR(50), \nclassCode CHAR(50),\nstudentId CHAR(50),");
         command += String.format("\nstatus CHAR(100),\nwantsToRemove BOOLEAN,\nisWaiting BOOLEAN,");
         command += String.format("\nPRIMARY KEY(studentId, courseCode, classCode),");
-        command += String.format("\nFOREIGN KEY (courseCode) REFERENCES %s(courseCode),", CourseTableName);
-        command += String.format("\nFOREIGN KEY (classCode) REFERENCES %s(classCode),", OfferingTableName);
+        command += String.format("\nFOREIGN KEY (courseCode, classCode) REFERENCES %s(courseCode, classCode),", OfferingTableName);
         command += String.format("\nFOREIGN KEY (studentId) REFERENCES %s(studentId));", StudentTableName);
 
         PreparedStatement createAddedOfferingTableStatement = connection.prepareStatement(command);
