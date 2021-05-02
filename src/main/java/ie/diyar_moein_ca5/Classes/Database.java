@@ -30,7 +30,7 @@ import java.util.Map;
 public class Database {
     ArrayList<Course> courses;
     ObjectMapper objectMapper;
-    Student currentStudent = null;
+    String currentStudent = "";
     String searchKey = "";
     String errorMessage = "";
     private static Database database;
@@ -159,15 +159,16 @@ public class Database {
     }
 
     public void setCurrentStudent(String studentId) throws StudentNotFoundException, SQLException {
-        this.currentStudent = database.getStudent(studentId);
+        if (database.getStudent(studentId) != null)
+            this.currentStudent = studentId;
     }
 
-    public Student getCurrentStudent() {
-        return this.currentStudent;
+    public Student getCurrentStudent() throws SQLException, StudentNotFoundException {
+        return getStudent(this.currentStudent);
     }
 
     public void logout() {
-        this.currentStudent = null;
+        this.currentStudent = "";
     }
 
     public String sendGetRequestToURL(String url) throws Exception {

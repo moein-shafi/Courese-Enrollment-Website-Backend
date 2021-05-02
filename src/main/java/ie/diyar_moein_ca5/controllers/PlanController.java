@@ -2,6 +2,7 @@ package ie.diyar_moein_ca5.controllers;
 
 import ie.diyar_moein_ca5.Classes.Database;
 import ie.diyar_moein_ca5.Classes.Student;
+import ie.diyar_moein_ca5.Exceptions.StudentNotFoundException;
 import ie.diyar_moein_ca5.controllers.models.ProfileModel;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,7 +16,7 @@ import java.util.HashMap;
 public class PlanController {
 
     @PostMapping(value = "/plan", produces = MediaType.APPLICATION_JSON_VALUE)
-    public static HashMap<String, HashMap<String, String>> plan() throws SQLException {
+    public static HashMap<String, HashMap<String, String>> plan() throws SQLException, StudentNotFoundException {
         HashMap<String, HashMap<String, String>> weeklyPlan = new HashMap<>();
         Database database = Database.getDatabase();
         Student student = database.getCurrentStudent();

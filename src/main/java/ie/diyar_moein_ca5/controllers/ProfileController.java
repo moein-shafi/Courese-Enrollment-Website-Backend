@@ -2,6 +2,7 @@ package ie.diyar_moein_ca5.controllers;
 
 import ie.diyar_moein_ca5.Classes.Database;
 import ie.diyar_moein_ca5.Exceptions.CourseNotFoundException;
+import ie.diyar_moein_ca5.Exceptions.StudentNotFoundException;
 import ie.diyar_moein_ca5.controllers.models.ProfileModel;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,7 +15,7 @@ import java.sql.SQLException;
 public class ProfileController {
 
     @GetMapping(value = "/profile", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ProfileModel profile() throws CourseNotFoundException, SQLException {
+    public ProfileModel profile() throws CourseNotFoundException, SQLException, StudentNotFoundException {
         Database database = Database.getDatabase();
         return new ProfileModel();
     }

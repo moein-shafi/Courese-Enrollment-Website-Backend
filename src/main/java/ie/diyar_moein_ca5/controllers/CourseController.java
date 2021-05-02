@@ -18,7 +18,7 @@ public class CourseController {
     public HashMap<String, String> AddCourse(
             @RequestParam(value = "courseCode") String courseCode,
             @RequestParam(value = "classCode") String classCode,
-            @RequestParam(value = "isWaiting", defaultValue = "false") boolean isWaiting) throws SQLException {
+            @RequestParam(value = "isWaiting", defaultValue = "false") boolean isWaiting) throws SQLException, StudentNotFoundException {
 
         Database database = Database.getDatabase();
         HashMap<String, String> response = new HashMap<>();
@@ -60,7 +60,7 @@ public class CourseController {
     }
 
     @DeleteMapping(value = "/course", produces = MediaType.APPLICATION_JSON_VALUE)
-    public HashMap<String, String> RemoveCourse(@RequestParam(value = "courseCode") String courseCode) throws SQLException {
+    public HashMap<String, String> RemoveCourse(@RequestParam(value = "courseCode") String courseCode) throws SQLException, StudentNotFoundException {
         Database database = Database.getDatabase();
         Student student = database.getCurrentStudent();
         Student.AddedOffering offering = student.getAddedOfferings().get(courseCode);
@@ -73,13 +73,13 @@ public class CourseController {
     }
 
     @GetMapping(value = "/course", produces = MediaType.APPLICATION_JSON_VALUE)
-    public CourseModel course() throws SQLException, CourseNotFoundException {
+    public CourseModel course() throws SQLException, CourseNotFoundException, StudentNotFoundException {
         Database database = Database.getDatabase();
         return new CourseModel();
     }
 
     @PostMapping(value = "/course", produces = MediaType.APPLICATION_JSON_VALUE)
-    public HashMap<String, String> Submit(@RequestParam(value = "action") String action) throws SQLException {
+    public HashMap<String, String> Submit(@RequestParam(value = "action") String action) throws SQLException, StudentNotFoundException {
         Database database = Database.getDatabase();
         HashMap<String, String> response = new HashMap<>();
         String message = "Successfully submitted.";
