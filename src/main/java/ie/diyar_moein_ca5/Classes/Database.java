@@ -227,8 +227,14 @@ public class Database {
 
         for (int i = 0; i < jsonNode.size(); i++)
         {
-            addOffering(jsonNode.get(i).toString());
+            addOffering(jsonNode.get(i).toString(), false);
         }
+
+        for (int i = 0; i < jsonNode.size(); i++)
+        {
+            addOffering(jsonNode.get(i).toString(), true);
+        }
+
     }
 
     public String addStudent(String data) throws JsonProcessingException, SQLException {
@@ -291,10 +297,9 @@ public class Database {
         return !exist;
     }
 
-    public String addOffering(String data) throws JsonProcessingException {
-        String code, name, instructor, classTime, classCode, type, examTimeStartString, examTimeEndString;
+    public String addOffering(String data, boolean addPrerequisites) throws JsonProcessingException, SQLException {
+        String code, name, instructor, classTime, classCode, type, examTimeStart, examTimeEnd;
         Integer units, capacity;
-        HashMap<String, LocalDateTime> examTime = new HashMap<String, LocalDateTime>();
         ArrayList<String> classDays = new ArrayList<String>();
         ArrayList<String> prerequisites = new ArrayList<String>();
 
@@ -308,10 +313,8 @@ public class Database {
             units = jsonNode.get("units").asInt();
             capacity = jsonNode.get("capacity").asInt();
             classTime = jsonNode.at("/classTime/time").asText();
-            examTimeStartString = jsonNode.at("/examTime/start").asText();
-            examTimeEndString = jsonNode.at("/examTime/end").asText();
-            examTime.put("start", LocalDateTime.parse(examTimeStartString));
-            examTime.put("end", LocalDateTime.parse(examTimeEndString));
+            examTimeStart = jsonNode.at("/examTime/start").asText();
+            examTimeEnd = jsonNode.at("/examTime/end").asText();
             JsonNode classDaysNode = jsonNode.at("/classTime/days");
             for (JsonNode day : classDaysNode) {
                 classDays.add(day.asText());
@@ -323,22 +326,119 @@ public class Database {
         } catch (Exception e) {
             return createJsonOutput("false", "Your input was in wrong format!");
         }
+        if (addPrerequisites) {
+            if (checkPrerequisitesRepeating(code)) {
+                this.addPrerequisitesToDB(code, prerequisites);
+            }
+        }
 
-        Course course = new Course(code, classCode, name, instructor, type, units, classDays, classTime, examTime, capacity,
-                prerequisites);
         if (checkCourseIdRepeating(code)) {
-            this.courses.add(course);
+            this.addCourseToDB(code, name, type, units, examTimeStart, examTimeEnd);
+            if (checkOfferingRepeating(code, classCode))
+                this.addOfferingToDB(code, classCode, instructor, capacity, classDays, classTime);
             return createJsonOutput("true", "Classes.Course '" + code + "' successfully added.");
         }
         return createJsonOutput("false", "This 'code' has already been added before!");
     }
 
-    public boolean checkCourseIdRepeating(String code)
-    {
-        for (Course course : this.courses)
-            if (course.getCode().equals(code))
-                return false;
-        return true;
+    private void addOfferingToDB(String courseCode, String classCode, String instructor, int capacity,
+                                 ArrayList<String> classDays, String classTime) throws SQLException {
+        Connection connection = ConnectionPool.getConnection();
+        String firstClassDay = classDays.get(0);
+        String secondClassDay = classDays.get(0);
+
+        if (classDays.size() > 1)
+            secondClassDay = classDays.get(1);
+
+        PreparedStatement statement = connection.prepareStatement(String.format(
+                "insert into %s (courseCode, classCode, instructor, firstClassDay, secondClassDay, classTime, capacity)"
+                        + " values (?, ?, ?, ?, ?, ?, ?);", OfferingTableName));
+
+        statement.setString(1, courseCode);
+        statement.setString(2, classCode);
+        statement.setString(3, instructor);
+        statement.setString(4, firstClassDay);
+        statement.setString(5, secondClassDay);
+        statement.setString(6, classTime);
+        statement.setInt(7, capacity);
+
+        statement.executeUpdate();
+        statement.close();
+        connection.close();
+    }
+
+    private void addPrerequisitesToDB(String courseCode, ArrayList<String> prerequisites) throws SQLException {
+        Connection connection = ConnectionPool.getConnection();
+        for (String prerequisit : prerequisites) {
+            PreparedStatement statement = connection.prepareStatement(String.format(
+                    "insert into %s (mainCourseCode, id, prerequisitCourseCode)"
+                            + " values (?, 0, ?);", PrerequisitTableName));
+            statement.setString(1, courseCode);
+            statement.setString(2, prerequisit);
+
+            statement.executeUpdate();
+            statement.close();
+        }
+        connection.close();
+    }
+
+    private void addCourseToDB(String courseCode, String name, String type, int units,
+                               String examTimeStart, String examTimeEnd) throws SQLException {
+
+        Connection connection = ConnectionPool.getConnection();
+        PreparedStatement statement = connection.prepareStatement(String.format(
+                "insert into %s (courseCode, name, type, units, examTimeStart, examTimeEnd)"
+                        + " values (?, ?, ?, ?, ?, ?);", CourseTableName));
+        statement.setString(1, courseCode);
+        statement.setString(2, name);
+        statement.setString(3, type);
+        statement.setInt(4, units);
+        statement.setString(5, examTimeStart);
+        statement.setString(6, examTimeEnd);
+
+        statement.executeUpdate();
+        statement.close();
+        connection.close();
+    }
+
+    public boolean checkPrerequisitesRepeating(String code) throws SQLException {
+        Connection connection = ConnectionPool.getConnection();
+        PreparedStatement statement = connection.prepareStatement(
+                String.format("select mainCourseCode from %s p where p.mainCourseCode = ?;", PrerequisitTableName));
+        statement.setString(1, code);
+        ResultSet result = statement.executeQuery();
+        boolean exist = result.next();
+        result.close();
+        statement.close();
+        connection.close();
+        return !exist;
+    }
+
+    public boolean checkOfferingRepeating(String code, String classCode) throws SQLException {
+        Connection connection = ConnectionPool.getConnection();
+        PreparedStatement statement = connection.prepareStatement(
+                String.format("select courseCode from %s o where o.courseCode = ? and o.classCode = ?;", OfferingTableName));
+        statement.setString(1, code);
+        statement.setString(2, classCode);
+        ResultSet result = statement.executeQuery();
+        boolean exist = result.next();
+        result.close();
+        statement.close();
+        connection.close();
+        return !exist;
+    }
+
+    public boolean checkCourseIdRepeating(String code) throws SQLException {
+        Connection connection = ConnectionPool.getConnection();
+        PreparedStatement statement = connection.prepareStatement(
+                String.format("select courseCode from %s c where c.courseCode = ?;", CourseTableName));
+        statement.setString(1, code);
+        ResultSet result = statement.executeQuery();
+        boolean exist = result.next();
+        result.close();
+        statement.close();
+        connection.close();
+        return !exist;
     }
 
     public String createJsonOutput(String status, String message) throws JsonProcessingException {
