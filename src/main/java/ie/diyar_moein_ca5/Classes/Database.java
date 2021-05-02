@@ -161,7 +161,7 @@ public class Database {
         this.searchKey = searchKey;
     }
 
-    public void setCurrentStudent(String studentId) throws StudentNotFoundException {
+    public void setCurrentStudent(String studentId) throws StudentNotFoundException, SQLException {
         this.currentStudent = database.getStudent(studentId);
     }
 
@@ -224,7 +224,7 @@ public class Database {
     private ArrayList<String> getStudentFromDB() throws SQLException {
         Connection connection = ConnectionPool.getConnection();
         PreparedStatement statement = connection.prepareStatement(
-                String.format("select * from %s;", StudentTableName));
+                String.format("select studentId from %s;", StudentTableName));
         ResultSet result = statement.executeQuery();
         ArrayList<String> studentsId = new ArrayList<>();
         while (result.next())
@@ -511,12 +511,30 @@ public class Database {
             student.addToWeeklySchedule(course, false);
     }
 
-    public Student getStudent(String studentId) throws StudentNotFoundException {
-        for (Student s: this.students)
-        {
-            if (s.getStudentId().equals(studentId))
-                return s;
-        }
+    public Student getStudent(String studentId) throws StudentNotFoundException, SQLException {
+
+        Connection connection = ConnectionPool.getConnection();
+        PreparedStatement statement = connection.prepareStatement(
+                String.format("select * from %s s where s.studentId = ?;", StudentTableName));
+        statement.setString(1, studentId);
+        ResultSet result = statement.executeQuery();
+        Student student = null;
+        boolean exist = result.next();
+        if (exist)
+            student = new Student(result.getString("studentId"),
+                               result.getString("name"),
+                               result.getString("secondName"),
+                               result.getString("birthDate"),
+                               result.getString("field"),
+                               result.getString("faculty"),
+                               result.getString("level"),
+                               result.getString("status"),
+                               result.getString("img"));
+        result.close();
+        statement.close();
+        connection.close();
+        if (exist)
+            return student;
         throw new StudentNotFoundException();
     }
 
