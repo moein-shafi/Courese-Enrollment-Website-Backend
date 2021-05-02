@@ -103,14 +103,34 @@ public class Student {
             this.isWaiting = waiting;
         }
 
-        public void makeFinalize() {
-            if (this.status == Status.non_finalized)
-                this.course.increaseSignedUp();
-
+        public void makeFinalize() throws SQLException {
             this.status = Status.finalized;
+            Connection connection = ConnectionPool.getConnection();
+            PreparedStatement statement = connection.prepareStatement(
+                    String.format("update %s set status = ? where studentId = ? and courseCode = ? and classCode = ?;", Database.getDatabase().getAddedOfferingTableName()));
+            statement.setString(1, "finalized");
+            statement.setString(2, studentId);
+            statement.setString(3, course.getCode());
+            statement.setString(4, course.getClassCode());
+            int result = statement.executeUpdate();
+            statement.close();
+            connection.close();
+
         }
 
-        public Status getFinalized() {
+        public String getFinalized() throws SQLException {
+            Connection connection = ConnectionPool.getConnection();
+            PreparedStatement statement = connection.prepareStatement(
+                    String.format("select status from %s where studentId = ? and courseCode = ? and classCode = ?;", Database.getDatabase().getAddedOfferingTableName()));
+            statement.setString(1, studentId);
+            statement.setString(2, course.getCode());
+            statement.setString(3, course.getClassCode());
+            ResultSet result = statement.executeQuery();
+            String status = "";
+            if (result.next())
+                status = result.getString("status");
+            statement.close();
+            connection.close();
             return status;
         }
 
@@ -118,25 +138,84 @@ public class Student {
             return this.course;
         }
 
-        public String getStatus() {
+        public String getStatus() throws SQLException {
+            Connection connection = ConnectionPool.getConnection();
+            PreparedStatement statement = connection.prepareStatement(
+                    String.format("select isWaiting from %s where studentId = ? and courseCode = ? and classCode = ?;", Database.getDatabase().getAddedOfferingTableName()));
+            statement.setString(1, studentId);
+            statement.setString(2, course.getCode());
+            statement.setString(3, course.getClassCode());
+            ResultSet result = statement.executeQuery();
+            boolean isWaiting = true;
+            if (result.next())
+                isWaiting = result.getBoolean("isWaiting");
+            statement.close();
+            connection.close();
             if (isWaiting)
                 return "Waiting";
             return "Enrolled";
         }
 
-        public void setToRemove() {
+        public void setToRemove() throws SQLException {
             this.wantsToRemove = true;
+
+            Connection connection = ConnectionPool.getConnection();
+            PreparedStatement statement = connection.prepareStatement(
+                    String.format("update %s set wantsToRemove = ? where studentId = ? and courseCode = ? and classCode = ?;", Database.getDatabase().getAddedOfferingTableName()));
+            statement.setBoolean(1, true);
+            statement.setString(2, studentId);
+            statement.setString(3, course.getCode());
+            statement.setString(4, course.getClassCode());
+            int result = statement.executeUpdate();
+            statement.close();
+            connection.close();
+
         }
 
-        public void cancelRemoving() {
+        public void cancelRemoving() throws SQLException {
             this.wantsToRemove = false;
+            Connection connection = ConnectionPool.getConnection();
+            PreparedStatement statement = connection.prepareStatement(
+                    String.format("update %s set wantsToRemove = ? where studentId = ? and courseCode = ? and classCode = ?;", Database.getDatabase().getAddedOfferingTableName()));
+            statement.setBoolean(1, false);
+            statement.setString(2, studentId);
+            statement.setString(3, course.getCode());
+            statement.setString(4, course.getClassCode());
+            int result = statement.executeUpdate();
+            statement.close();
+            connection.close();
+
         }
 
-        public boolean isWantsToRemove() {
+        public boolean isWantsToRemove() throws SQLException {
+            Connection connection = ConnectionPool.getConnection();
+            PreparedStatement statement = connection.prepareStatement(
+                    String.format("select wantsToRemove from %s where studentId = ? and courseCode = ? and classCode = ?;", Database.getDatabase().getAddedOfferingTableName()));
+            statement.setString(1, studentId);
+            statement.setString(2, course.getCode());
+            statement.setString(3, course.getClassCode());
+            ResultSet result = statement.executeQuery();
+            boolean wantsToRemove = false;
+            if (result.next())
+                wantsToRemove = result.getBoolean("wantsToRemove");
+            statement.close();
+            connection.close();
             return wantsToRemove;
         }
 
-        public void changeWaitingToFalse() { this.isWaiting = false; }
+        public void changeWaitingToFalse() throws SQLException {
+            this.isWaiting = false;
+            Connection connection = ConnectionPool.getConnection();
+            PreparedStatement statement = connection.prepareStatement(
+                    String.format("update %s set isWaiting = ? where studentId = ? and courseCode = ? and classCode = ?;", Database.getDatabase().getAddedOfferingTableName()));
+            statement.setBoolean(1, false);
+            statement.setString(2, studentId);
+            statement.setString(3, course.getCode());
+            statement.setString(4, course.getClassCode());
+            int result = statement.executeUpdate();
+            statement.close();
+            connection.close();
+        }
     }
 
     public Student(String studentId, String name, String secondName, String birthDate, String field, String faculty,
@@ -324,7 +403,7 @@ public class Student {
                 String.format("delete from %s where studentId = ? and courseCode = ? and classCode = ?;", Database.getDatabase().getAddedOfferingTableName()));
         statement.setString(1, this.studentId);
         statement.setString(2, addedOffering.getCourse().getCode());
-        statement.setString(2, addedOffering.getCourse().getClassCode());
+        statement.setString(3, addedOffering.getCourse().getClassCode());
 
         int result = statement.executeUpdate();
         statement.close();
@@ -334,8 +413,7 @@ public class Student {
     public void removeFromWeeklySchedule(String code) throws CourseNotFoundException, SQLException {
         if (checkRepeatedAddedOffering(code, "", studentId)) {
             AddedOffering addedOffering = getOneAddedOfferingFromDB(code);
-            if (addedOffering.getFinalized() == Status.finalized)
-                removeAddedOfferingFromWeekly(addedOffering);
+            removeAddedOfferingFromWeekly(addedOffering);
         }
         else
             throw new CourseNotFoundException(code);
@@ -344,7 +422,7 @@ public class Student {
     public int getFinalizedUnits() throws SQLException, CourseNotFoundException {
         finalizedUnits = 0;
         for (AddedOffering offering : getAddedOfferingsFromDB())
-            if (offering.getFinalized() == Status.finalized && offering.getStatus().equals("Enrolled"))
+            if (offering.getFinalized() == "finalized" && offering.getStatus().equals("Enrolled"))
                 finalizedUnits += offering.course.getUnits();
 
         return finalizedUnits;
@@ -379,7 +457,7 @@ public class Student {
             Course course = offering.getCourse();
             if (offering.isWantsToRemove())
                 continue;
-            if (offering.getFinalized() == Status.finalized) {
+            if (offering.getFinalized() == "finalized") {
                 totalUnits += course.getUnits();
                 continue;
             }
@@ -415,7 +493,7 @@ public class Student {
         return true;
     }
 
-    public void removeWaitingStatus(Course course) {
-        if (this.addedOfferings.containsKey(course.getCode()))
-            this.addedOfferings.get(course.getCode()).changeWaitingToFalse();   }
+    public void removeWaitingStatus(Course course) throws SQLException, CourseNotFoundException {
+        if (checkRepeatedAddedOffering(course.getCode(), "", studentId))
+            getOneAddedOfferingFromDB(course.getCode()).changeWaitingToFalse();   }
     }

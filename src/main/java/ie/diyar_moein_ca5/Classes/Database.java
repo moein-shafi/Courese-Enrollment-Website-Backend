@@ -549,15 +549,14 @@ public class Database {
             Double grade = grades_result.getDouble("grade");
             termGrades.get(termNumber).put(code, grade);
         }
-        student.addTermGrade(termGrades);
 
-        student.calculateGpa();
-
+        if (exist) {
+            student.addTermGrade(termGrades);
+            student.calculateGpa();
+        }
         statement.close();
         connection.close();
-        if (exist)
-            return student;
-        throw new StudentNotFoundException();
+        return student;
     }
 
     public Course getCourse(String courseCode, String classCode) throws CourseNotFoundException, SQLException {
@@ -667,9 +666,8 @@ public class Database {
         }
         return htmlString;
     }
-    public void checkWaitingLists() throws AlreadyAddedCourseToPlanException, ExamsTimeColisionException, ClassesTimeCollisionException {
+    public void checkWaitingLists() throws AlreadyAddedCourseToPlanException, ExamsTimeColisionException, ClassesTimeCollisionException, SQLException, CourseNotFoundException {
         /// TODO: this
-
         for (Course course : this.courses) {
             course.checkWaitingList();
         }

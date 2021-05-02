@@ -31,7 +31,7 @@ public class PlanController {
         for (String day : days) {
             HashMap<String, String> dayPlan = new HashMap<>();
             for (Student.AddedOffering offering : student.getAddedOfferings().values()) {
-                if (offering.getFinalized() == Student.Status.non_finalized)
+                if (offering.getFinalized() == "non_finalized")
                     continue;
                 if (offering.getCourse().getClassDays().contains(day)) {
                     dayPlan.put(offering.getCourse().getClassTime(), offering.getCourse().getName());

@@ -92,7 +92,7 @@ public class CourseController {
                 for (Student.AddedOffering offering : student.getAddedOfferings().values()) {
                     if (offering.isWantsToRemove())
                         forDeleteCourses.add(offering.getCourse().getCode());
-                    else if (offering.getFinalized() == Student.Status.finalized)
+                    else if (offering.getFinalized() == "finalized")
                         continue;
                     else
                         offering.makeFinalize();
@@ -102,7 +102,7 @@ public class CourseController {
             else {
 
                 for (Student.AddedOffering offering : student.getAddedOfferings().values()) {
-                    if (offering.getFinalized() == Student.Status.non_finalized)
+                    if (offering.getFinalized() == "non_finalized")
                         forDeleteCourses.add(offering.getCourse().getCode());
 
                     if (offering.isWantsToRemove())

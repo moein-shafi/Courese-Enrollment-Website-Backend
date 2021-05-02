@@ -2,8 +2,10 @@ package ie.diyar_moein_ca5.Classes;
 
 import ie.diyar_moein_ca5.Exceptions.AlreadyAddedCourseToPlanException;
 import ie.diyar_moein_ca5.Exceptions.ClassesTimeCollisionException;
+import ie.diyar_moein_ca5.Exceptions.CourseNotFoundException;
 import ie.diyar_moein_ca5.Exceptions.ExamsTimeColisionException;
 
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -96,7 +98,8 @@ public class Course {
         return signedUp;
     }
 
-    public void checkWaitingList() throws AlreadyAddedCourseToPlanException, ExamsTimeColisionException, ClassesTimeCollisionException {
+    public void checkWaitingList() throws AlreadyAddedCourseToPlanException, ExamsTimeColisionException, ClassesTimeCollisionException, SQLException, CourseNotFoundException {
+        /// TODO: this
         while (this.signedUp < this.capacity && this.waitingList.size() >= 1) {
             increaseSignedUp();
             this.waitingList.get(0).removeWaitingStatus(this);
