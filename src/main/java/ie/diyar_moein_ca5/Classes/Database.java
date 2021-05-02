@@ -96,8 +96,9 @@ public class Database {
     private void initializeTermTable(Connection connection) throws SQLException {
         String command = String.format("CREATE TABLE IF NOT EXISTS %s", TermTableName);
         command += String.format("(courseCode CHAR(50),\ntermNumber INT,\ngrade FLOAT,");
-        command += String.format("\nPRIMARY KEY (courseCode, termNumber),");
-        command += String.format("\nFOREIGN KEY (courseCode) REFERENCES %s(courseCode));", CourseTableName);
+        command += String.format("\nstudentId CHAR(50),\nPRIMARY KEY (courseCode, termNumber, studentId),");
+        command += String.format("\nFOREIGN KEY (courseCode) REFERENCES %s(courseCode),", CourseTableName);
+        command += String.format("\nFOREIGN KEY (studentId) REFERENCES %s(studentId));", StudentTableName);
 
         PreparedStatement createTermTableStatement = connection.prepareStatement(command);
         createTermTableStatement.executeUpdate();
@@ -198,8 +199,8 @@ public class Database {
     }
 
     public void getGradesFromAPI() throws Exception {
-        for (Student student:students){
-            String response = sendGetRequestToURL("http://138.197.181.131:5100/api/grades/"+student.getStudentId());
+        for (String studentId : getStudentFromDB()) {
+            String response = sendGetRequestToURL("http://138.197.181.131:5100/api/grades/" + studentId);
             JsonNode jsonNode = objectMapper.readTree(response);
             HashMap<Integer, HashMap<String, Double>> termGrades = new HashMap<>();
             for (int i = 0; i < jsonNode.size(); i++)
@@ -216,10 +217,66 @@ public class Database {
                     termGrades.put(termNumber, grades);
                 }
             }
-            student.addTermGrade(termGrades);
-            student.calculateGpa();
+            this.addTermToDB(termGrades, studentId);
         }
     }
+
+    private ArrayList<String> getStudentFromDB() throws SQLException {
+        Connection connection = ConnectionPool.getConnection();
+        PreparedStatement statement = connection.prepareStatement(
+                String.format("select * from %s;", StudentTableName));
+        ResultSet result = statement.executeQuery();
+        ArrayList<String> studentsId = new ArrayList<>();
+        while (result.next())
+            studentsId.add(result.getString("studentId"));
+
+        result.close();
+        statement.close();
+        connection.close();
+        return studentsId;
+    }
+
+    private void addTermToDB(HashMap<Integer, HashMap<String, Double>> termGrades, String studentId) throws SQLException {
+        Connection connection = ConnectionPool.getConnection();
+        for (int termNumber : termGrades.keySet()) {
+            for (String courseCode : termGrades.get(termNumber).keySet()) {
+
+                if (!checkTermRepeating(courseCode, termNumber, studentId))
+                    continue;
+
+                PreparedStatement statement = connection.prepareStatement(String.format(
+                        "insert into %s (courseCode, termNumber, grade, studentId)"
+                                + " values (?, ?, ?, ?);", TermTableName));
+
+                statement.setString(1, courseCode);
+                statement.setInt(2, termNumber);
+                statement.setDouble(3, termGrades.get(termNumber).get(courseCode));
+                statement.setString(4, studentId);
+
+                statement.executeUpdate();
+                statement.close();
+            }
+        }
+        connection.close();
+    }
+
+    public boolean checkTermRepeating(String courseCode, int termNumber, String studentId) throws SQLException{
+        Connection connection = ConnectionPool.getConnection();
+
+        PreparedStatement statement = connection.prepareStatement(
+                String.format("select courseCode from %s t where t.courseCode = ? and t.termNumber = ? and t.studentId = ?;", TermTableName));
+        statement.setString(1, courseCode);
+        statement.setInt(2, termNumber);
+        statement.setString(3, studentId);
+        ResultSet result = statement.executeQuery();
+        boolean exist = result.next();
+        result.close();
+        statement.close();
+        statement.close();
+        connection.close();
+        return !exist;
+    }
+
 
     public void getCoursesFromAPI() throws Exception {
         String response = sendGetRequestToURL("http://138.197.181.131:5100/api/courses");
