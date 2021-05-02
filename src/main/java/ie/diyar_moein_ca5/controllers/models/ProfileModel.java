@@ -30,6 +30,8 @@ public class ProfileModel {
             code = 200;
             message = "profile data is ready.";
             for (Integer termNumber : student.getTermGrades().keySet()) {
+                /// TODO: this
+
                 ArrayList<Course> courses = new ArrayList<>();
                     for (String code : student.getTermGrades().get(termNumber).keySet()) {
                         Double grade = student.getTermGrades().get(termNumber).get(code);

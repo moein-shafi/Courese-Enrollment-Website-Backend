@@ -25,6 +25,7 @@ public class CourseController {
         String message, code = "200";
         try {
             Student student = database.getCurrentStudent();
+
             Course course = database.getCourse(courseCode, classCode);
             student.addToWeeklySchedule(database.getCourse(courseCode, classCode), isWaiting);
             if (isWaiting)
@@ -72,7 +73,7 @@ public class CourseController {
     }
 
     @GetMapping(value = "/course", produces = MediaType.APPLICATION_JSON_VALUE)
-    public CourseModel course() throws SQLException {
+    public CourseModel course() throws SQLException, CourseNotFoundException {
         Database database = Database.getDatabase();
         return new CourseModel();
     }

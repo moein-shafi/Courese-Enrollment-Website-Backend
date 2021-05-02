@@ -28,7 +28,6 @@ import java.util.Map;
 
 
 public class Database {
-    ArrayList<Student> students;
     ArrayList<Course> courses;
     ObjectMapper objectMapper;
     Student currentStudent = null;
@@ -44,8 +43,6 @@ public class Database {
 
     private Database() throws SQLException {
         this.initializeTablesInDB();
-        students = new ArrayList<Student>();
-        courses = new ArrayList<Course>();
         objectMapper = new ObjectMapper();
     }
 
@@ -538,25 +535,101 @@ public class Database {
         throw new StudentNotFoundException();
     }
 
-    public Course getCourse(String code, String classCode) throws CourseNotFoundException {
-        for (Course c: this.courses)
-        {
-            if (c.getCode().equals(code) && c.getClassCode().equals(classCode))
-                return c;
-        }
+    public Course getCourse(String courseCode, String classCode) throws CourseNotFoundException, SQLException {
+        Connection connection = ConnectionPool.getConnection();
+        PreparedStatement statement = connection.prepareStatement(
+                String.format("select * from %s c where c.courseCode = ?;", CourseTableName));
+        statement.setString(1, courseCode);
+        ResultSet result = statement.executeQuery();
+
+        Course course = null;
+        boolean exist = result.next();
+
+        PreparedStatement prerequisitesStatement = connection.prepareStatement(
+                String.format("select prerequisitCourseCode from %s c where c.mainCourseCode = ?;", PrerequisitTableName));
+        prerequisitesStatement.setString(1, courseCode);
+        ResultSet prerequisitesResult = prerequisitesStatement.executeQuery();
+        ArrayList<String> prerequisites = new ArrayList<String>();
+
+        while (prerequisitesResult.next())
+            prerequisites.add(prerequisitesResult.getString("prerequisitCourseCode"));
+
+        PreparedStatement offeringStatement = connection.prepareStatement(
+                String.format("select * from %s o where o.courseCode = ? and o.classCode = ?;", OfferingTableName));
+        offeringStatement.setString(1, courseCode);
+        offeringStatement.setString(2, classCode);
+        ResultSet offeringResult = offeringStatement.executeQuery();
+        boolean offeringExist = offeringResult.next();
+
+        ArrayList<String> classDays = new ArrayList<String>();
+        classDays.add(offeringResult.getString("firstClassDay"));
+        classDays.add(offeringResult.getString("secondClassDay"));
+        HashMap<String, LocalDateTime> examTime = new HashMap<>();
+        examTime.put("start", LocalDateTime.parse(result.getString("examTimeStart")));
+        examTime.put("end", LocalDateTime.parse(result.getString("examTimeEnd")));
+
+        if (exist && offeringExist)
+            course = new Course(result.getString("courseCode"),
+                    classCode,
+                    result.getString("name"),
+                    offeringResult.getString("instructor"),
+                    result.getString("type"),
+                    result.getInt("units"),
+                    classDays,
+                    offeringResult.getString("classTime"),
+                    examTime,
+                    offeringResult.getInt("capacity"),
+                    prerequisites);
+
+        result.close();
+        prerequisitesResult.close();
+        offeringResult.close();
+        offeringStatement.close();
+        statement.close();
+        prerequisitesStatement.close();
+        connection.close();
+        if (exist && offeringExist)
+            return course;
         throw new CourseNotFoundException();
     }
 
-    public Course getCourse(String code) throws CourseNotFoundException {
-        for (Course c: this.courses)
-        {
-            if (c.getCode().equals(code))
-                return c;
-        }
-        throw new CourseNotFoundException();
+    public Course getCourse(String courseCode) throws CourseNotFoundException, SQLException {
+        Connection connection = ConnectionPool.getConnection();
+        PreparedStatement offeringStatement = connection.prepareStatement(
+                String.format("select * from %s o where o.courseCode = ?;", OfferingTableName));
+        offeringStatement.setString(1, courseCode);
+        ResultSet offeringResult = offeringStatement.executeQuery();
+        boolean offeringExist = offeringResult.next();
+        String classCode = "";
+        if (offeringExist)
+            classCode = offeringResult.getString("classCode");
+
+        offeringResult.close();
+        offeringStatement.close();
+        connection.close();
+        return getCourse(courseCode, classCode);
     }
 
-    public ArrayList<Course> getCourses() { return courses; }
+    public ArrayList<Course> getCourses() throws SQLException, CourseNotFoundException {
+        ArrayList<Course> allCourses = new ArrayList<>();
+        Connection connection = ConnectionPool.getConnection();
+        PreparedStatement statement = connection.prepareStatement(
+                String.format("select * from %s;", OfferingTableName));
+        ResultSet result = statement.executeQuery();
+
+        while (result.next()) {
+            String courseCode = result.getString("courseCode");
+            String classCode = result.getString("classCode");
+            allCourses.add(getCourse(courseCode, classCode));
+
+        }
+
+        result.close();
+        statement.close();
+        connection.close();
+
+        return allCourses;
+    }
 
 
     public String FillTemplates(String address, HashMap<String, String> content) throws IOException, URISyntaxException {
@@ -570,6 +643,8 @@ public class Database {
         return htmlString;
     }
     public void checkWaitingLists() throws AlreadyAddedCourseToPlanException, ExamsTimeColisionException, ClassesTimeCollisionException {
+        /// TODO: this
+
         for (Course course : this.courses) {
             course.checkWaitingList();
         }
