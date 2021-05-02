@@ -4,7 +4,11 @@ import ie.diyar_moein_ca5.Exceptions.AlreadyAddedCourseToPlanException;
 import ie.diyar_moein_ca5.Exceptions.ClassesTimeCollisionException;
 import ie.diyar_moein_ca5.Exceptions.CourseNotFoundException;
 import ie.diyar_moein_ca5.Exceptions.ExamsTimeColisionException;
+import ie.diyar_moein_ca5.repository.ConnectionPool;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -94,8 +98,17 @@ public class Course {
         signedUp++;
     }
 
-    public Integer getSignedUp() {
-        return signedUp;
+    public Integer getSignedUp() throws SQLException {
+        Connection connection = ConnectionPool.getConnection();
+        PreparedStatement statement = connection.prepareStatement(
+                String.format("Select count(*) as signedUp from AddedOfferings where (courseCode = ?) and (status = 'finalized');", Database.getDatabase().getAddedOfferingTableName()));
+        statement.setString(1, this.code);
+        ResultSet result = statement.executeQuery();
+        if (result.next())
+            this.signedUp = result.getInt("signedUp");
+        statement.close();
+        connection.close();
+        return this.signedUp;
     }
 
     public void checkWaitingList() throws AlreadyAddedCourseToPlanException, ExamsTimeColisionException, ClassesTimeCollisionException, SQLException, CourseNotFoundException {

@@ -95,7 +95,10 @@ public class CourseController {
                     else if (offering.getFinalized() == "finalized")
                         continue;
                     else
+                    {
                         offering.makeFinalize();
+
+                    }
                 }
 
             }

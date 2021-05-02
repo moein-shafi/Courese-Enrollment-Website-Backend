@@ -107,11 +107,12 @@ public class Student {
             this.status = Status.finalized;
             Connection connection = ConnectionPool.getConnection();
             PreparedStatement statement = connection.prepareStatement(
-                    String.format("update %s set status = ? where studentId = ? and courseCode = ? and classCode = ?;", Database.getDatabase().getAddedOfferingTableName()));
+                    String.format("update %s set status = ? where studentId = ? and courseCode = ? and classCode = ? and isWaiting = ?;", Database.getDatabase().getAddedOfferingTableName()));
             statement.setString(1, "finalized");
             statement.setString(2, studentId);
             statement.setString(3, course.getCode());
             statement.setString(4, course.getClassCode());
+            statement.setBoolean(5, false);
             int result = statement.executeUpdate();
             statement.close();
             connection.close();
@@ -420,12 +421,16 @@ public class Student {
     }
 
     public int getFinalizedUnits() throws SQLException, CourseNotFoundException {
-        finalizedUnits = 0;
-        for (AddedOffering offering : getAddedOfferingsFromDB())
-            if (offering.getFinalized() == "finalized" && offering.getStatus().equals("Enrolled"))
-                finalizedUnits += offering.course.getUnits();
-
-        return finalizedUnits;
+        Connection connection = ConnectionPool.getConnection();
+        PreparedStatement statement = connection.prepareStatement(
+                String.format("Select sum(units) from %s a, Courses c where (a.courseCode = c.courseCode) and (studentId = ?) and (status = 'finalized') and (isWaiting = 0);", Database.getDatabase().getAddedOfferingTableName()));
+        statement.setString(1, this.studentId);
+        ResultSet result = statement.executeQuery();
+        if (result.next())
+            this.finalizedUnits = result.getInt("sum(units)");
+        statement.close();
+        connection.close();
+        return this.finalizedUnits;
     }
 
     public void calculateGpa() throws CourseNotFoundException, SQLException {
@@ -457,20 +462,23 @@ public class Student {
             Course course = offering.getCourse();
             if (offering.isWantsToRemove())
                 continue;
-            if (offering.getFinalized() == "finalized") {
+            if (offering.getFinalized().equals("finalized")) {
                 totalUnits += course.getUnits();
                 continue;
             }
             for (String prerequisite : course.getPrerequisites()) {
-
+                boolean passed = false;
                 for (HashMap<String, Double> grades : this.termGrades.values()) {
+                    System.out.println(grades);
                     if (grades.containsKey(prerequisite)) {
-                        if (grades.get(prerequisite) < 10) {
-                            throw new PrerequisiteException(course.getName());
+                        if (grades.get(prerequisite) >= 10) {
+                            passed = true;
                         }
-                    } else {
-                        throw new PrerequisiteException(course.getName());
                     }
+                }
+                if (!passed)
+                {
+                    throw new PrerequisiteException(course.getName());
                 }
 
             }
