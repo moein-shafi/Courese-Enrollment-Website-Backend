@@ -1,6 +1,7 @@
 package ie.diyar_moein_ca5.controllers;
 
 import ie.diyar_moein_ca5.Classes.Database;
+import ie.diyar_moein_ca5.Exceptions.CourseNotFoundException;
 import ie.diyar_moein_ca5.Exceptions.StudentNotFoundException;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -22,7 +23,7 @@ public class LoginController {
             database.setCurrentStudent(studentId);
             response.put("code", "200");
             response.put("message", "login successfully");
-        } catch (StudentNotFoundException e) {
+        } catch (StudentNotFoundException | CourseNotFoundException e) {
             database.setErrorMessage("Student Not Found!");
             response.put("code", "404");
             response.put("message", database.getErrorMessage());

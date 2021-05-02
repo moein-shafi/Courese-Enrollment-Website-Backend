@@ -19,31 +19,30 @@ public class ProfileModel {
 
     public ProfileModel() throws CourseNotFoundException, SQLException, StudentNotFoundException {
         Database database = Database.getDatabase();
-        student = database.getCurrentStudent();
-
-        if (student == null)
+        try {
+            student = database.getCurrentStudent();
+            code = 200;
+            message = "profile data is ready.";
+        }
+        catch (StudentNotFoundException e)
         {
             code = 401;
             message = "login first!";
         }
 
-        else {
-            code = 200;
-            message = "profile data is ready.";
-            for (Integer termNumber : student.getTermGrades().keySet()) {
-                /// TODO: this
 
-                ArrayList<Course> courses = new ArrayList<>();
-                    for (String code : student.getTermGrades().get(termNumber).keySet()) {
-                        Double grade = student.getTermGrades().get(termNumber).get(code);
-                        courses.add(database.getCourse(code));
-                        if (grade < 10)
-                            continue;
-                        passedCourses.put(code, grade);
-                    }
-                termCourses.put(termNumber, courses);
-            }
+        for (Integer termNumber : student.getTermGrades().keySet()) {
+            ArrayList<Course> courses = new ArrayList<>();
+                for (String code : student.getTermGrades().get(termNumber).keySet()) {
+                    Double grade = student.getTermGrades().get(termNumber).get(code);
+                    courses.add(database.getCourse(code));
+                    if (grade < 10)
+                        continue;
+                    passedCourses.put(code, grade);
+                }
+            termCourses.put(termNumber, courses);
         }
+
     }
 
     public Student getStudent() {

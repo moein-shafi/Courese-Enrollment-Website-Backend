@@ -162,12 +162,12 @@ public class Database {
         this.searchKey = searchKey;
     }
 
-    public void setCurrentStudent(String studentId) throws StudentNotFoundException, SQLException {
+    public void setCurrentStudent(String studentId) throws StudentNotFoundException, SQLException, CourseNotFoundException {
         if (database.getStudent(studentId) != null)
             this.currentStudent = studentId;
     }
 
-    public Student getCurrentStudent() throws SQLException, StudentNotFoundException {
+    public Student getCurrentStudent() throws SQLException, StudentNotFoundException, CourseNotFoundException {
         return getStudent(this.currentStudent);
     }
 
@@ -512,7 +512,7 @@ public class Database {
             student.addToWeeklySchedule(course, false);
     }
 
-    public Student getStudent(String studentId) throws StudentNotFoundException, SQLException {
+    public Student getStudent(String studentId) throws StudentNotFoundException, SQLException, CourseNotFoundException {
 
         Connection connection = ConnectionPool.getConnection();
         PreparedStatement statement = connection.prepareStatement(
@@ -532,6 +532,27 @@ public class Database {
                                result.getString("status"),
                                result.getString("img"));
         result.close();
+        PreparedStatement grades_statement = connection.prepareStatement(
+                String.format("select * from %s where studentId = ? order by termNumber;", TermTableName));
+        grades_statement.setString(1, studentId);
+        ResultSet grades_result = grades_statement.executeQuery();
+
+        HashMap<Integer, HashMap<String, Double>> termGrades = new HashMap<>();
+        Integer termNumber = 0;
+        while (grades_result.next()){
+            Integer newTermNumber = grades_result.getInt("termNumber");
+            if (termNumber != newTermNumber){
+                termNumber = newTermNumber;
+                termGrades.put(termNumber, new HashMap<String, Double>());
+            }
+            String code = grades_result.getString("courseCode");
+            Double grade = grades_result.getDouble("grade");
+            termGrades.get(termNumber).put(code, grade);
+        }
+        student.addTermGrade(termGrades);
+
+        student.calculateGpa();
+
         statement.close();
         connection.close();
         if (exist)

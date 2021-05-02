@@ -79,7 +79,7 @@ public class CourseController {
     }
 
     @PostMapping(value = "/course", produces = MediaType.APPLICATION_JSON_VALUE)
-    public HashMap<String, String> Submit(@RequestParam(value = "action") String action) throws SQLException, StudentNotFoundException {
+    public HashMap<String, String> Submit(@RequestParam(value = "action") String action) throws SQLException, StudentNotFoundException, CourseNotFoundException {
         Database database = Database.getDatabase();
         HashMap<String, String> response = new HashMap<>();
         String message = "Successfully submitted.";
