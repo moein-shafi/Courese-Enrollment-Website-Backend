@@ -46,6 +46,10 @@ public class Database {
         objectMapper = new ObjectMapper();
     }
 
+    public String getAddedOfferingTableName() {
+        return AddedOfferingTableName;
+    }
+
     private void initializeTablesInDB() throws SQLException {
         Connection connection = ConnectionPool.getConnection();
         this.initializeStudentTable(connection);
@@ -258,7 +262,7 @@ public class Database {
         connection.close();
     }
 
-    public boolean checkTermRepeating(String courseCode, int termNumber, String studentId) throws SQLException{
+    public boolean checkTermRepeating(String courseCode, int termNumber, String studentId) throws SQLException {
         Connection connection = ConnectionPool.getConnection();
 
         PreparedStatement statement = connection.prepareStatement(
@@ -269,7 +273,6 @@ public class Database {
         ResultSet result = statement.executeQuery();
         boolean exist = result.next();
         result.close();
-        statement.close();
         statement.close();
         connection.close();
         return !exist;

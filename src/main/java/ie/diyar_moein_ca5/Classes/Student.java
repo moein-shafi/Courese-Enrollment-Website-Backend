@@ -1,10 +1,15 @@
 package ie.diyar_moein_ca5.Classes;
 
 import ie.diyar_moein_ca5.Exceptions.*;
+import ie.diyar_moein_ca5.repository.ConnectionPool;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 
@@ -69,13 +74,17 @@ public class Student {
         non_finalized
     }
 
-    public HashMap<String, AddedOffering> getAddedOfferings() {
-        return addedOfferings;
+    public HashMap<String, AddedOffering> getAddedOfferings() throws SQLException, CourseNotFoundException {
+        HashMap<String, AddedOffering> addedOfferingHashMap = new HashMap<>();
+        for (AddedOffering addedOffering : getAddedOfferingsFromDB()) {
+            addedOfferingHashMap.put(addedOffering.course.getCode(), addedOffering);
+        }
+        return  addedOfferingHashMap;
     }
 
-    public int getUnits() {
+    public int getUnits() throws SQLException, CourseNotFoundException {
         int units = 0;
-        for (AddedOffering offering : addedOfferings.values()) {
+        for (AddedOffering offering : getAddedOfferingsFromDB()) {
             if (offering.isWantsToRemove())
                 continue;
             units += offering.course.getUnits();
@@ -159,8 +168,30 @@ public class Student {
         return this.secondName;
     }
 
-    public void addToWeeklySchedule(Course course, boolean waiting) throws ClassesTimeCollisionException, ExamsTimeColisionException, AlreadyAddedCourseToPlanException {
-        for (AddedOffering offering1 : addedOfferings.values()) {
+    private ArrayList<AddedOffering> getAddedOfferingsFromDB() throws SQLException, CourseNotFoundException {
+        ArrayList<AddedOffering> addedOfferings = new ArrayList<>();
+        Connection connection = ConnectionPool.getConnection();
+        PreparedStatement statement = connection.prepareStatement(
+                String.format("select * from %s a where a.studentId = ?;", Database.getDatabase().getAddedOfferingTableName()));
+        statement.setString(1, this.studentId);
+        ResultSet result = statement.executeQuery();
+        while (result.next()) {
+            String courseCode = result.getString("courseCode");
+            String classCode = result.getString("classCode");
+            String status = result.getString("status");
+            boolean wantsToRemove = result.getBoolean("wantsToRemove");
+            boolean isWaiting = result.getBoolean("isWaiting");
+            Course course = Database.getDatabase().getCourse(courseCode, classCode);
+            addedOfferings.add(new AddedOffering(course, isWaiting));
+        }
+        result.close();
+        statement.close();
+        connection.close();
+        return addedOfferings;
+    }
+
+    public void addToWeeklySchedule(Course course, boolean waiting) throws ClassesTimeCollisionException, ExamsTimeColisionException, AlreadyAddedCourseToPlanException, SQLException, CourseNotFoundException {
+        for (AddedOffering offering1 : getAddedOfferingsFromDB()) {
             if (offering1.isWantsToRemove())
                 continue;
 
@@ -194,13 +225,63 @@ public class Student {
             }
         }
 
-        if (this.addedOfferings.containsKey(course.getCode()))
-            this.addedOfferings.get(course.getCode()).cancelRemoving();
+        if (checkRepeatedAddedOffering(course.getCode(), course.getClassCode(), this.studentId))
+            cancelAddedOfferingRemoving(course.getCode(), course.getClassCode(), this.studentId);
 
         else {
-            AddedOffering addedOffering = new AddedOffering(course, waiting);
-            this.addedOfferings.put(course.getCode(), addedOffering);
+            addAddedOfferingToDB(course, waiting);
         }
+    }
+
+    private void addAddedOfferingToDB(Course course, boolean isWaiting) throws SQLException {
+        Connection connection = ConnectionPool.getConnection();
+        PreparedStatement statement = connection.prepareStatement(
+                String.format("insert into %s (courseCode, classCode, studentId, status, wantsToRemove, isWaiting)"
+                        + " values (?, ?, ?, ?, ?, ?);", Database.getDatabase().getAddedOfferingTableName()));
+        statement.setString(1, course.getCode());
+        statement.setString(2, course.getClassCode());
+        statement.setString(3, studentId);
+        statement.setString(4, "non_finalized");
+        statement.setBoolean(5, false);
+        statement.setBoolean(6, isWaiting);
+
+        int result = statement.executeUpdate();
+        statement.close();
+        connection.close();
+    }
+
+    private void cancelAddedOfferingRemoving(String courseCode, String classCode, String studentId) throws SQLException {
+        Connection connection = ConnectionPool.getConnection();
+        PreparedStatement statement = connection.prepareStatement(
+                String.format("update %s set wantsToRemove = ? where studentId = ? and courseCode = ? and classCode = ?;", Database.getDatabase().getAddedOfferingTableName()));
+        statement.setBoolean(1, false);
+        statement.setString(2, studentId);
+        statement.setString(3, courseCode);
+        statement.setString(4, classCode);
+        int result = statement.executeUpdate();
+        statement.close();
+        connection.close();
+    }
+
+    private boolean checkRepeatedAddedOffering(String courseCode, String classCode, String studentId) throws SQLException {
+        Connection connection = ConnectionPool.getConnection();
+
+        String command = String.format("select * from %s a where a.studentId = ? and a.courseCode = ? and a.classCode = ?;", Database.getDatabase().getAddedOfferingTableName());
+        if (classCode == "")
+            command = String.format("select * from %s a where a.studentId = ? and a.courseCode = ?;", Database.getDatabase().getAddedOfferingTableName());
+
+        PreparedStatement statement = connection.prepareStatement(command);
+        statement.setString(1, studentId);
+        statement.setString(2, courseCode);
+        if (classCode != "")
+            statement.setString(3, classCode);
+
+        ResultSet result = statement.executeQuery();
+        boolean exist = result.next();
+        result.close();
+        statement.close();
+        connection.close();
+        return exist;
     }
 
     public LocalTime stringToLocalTime(String time) {
@@ -214,19 +295,55 @@ public class Student {
         return LocalTime.parse(classTime[0] + ":" + classTime[1]);
     }
 
-    public void removeFromWeeklySchedule(String code) throws CourseNotFoundException {
-        if (addedOfferings.containsKey(code)) {
-            if (addedOfferings.get(code).getFinalized() == Status.finalized)
-                addedOfferings.get(code).getCourse().decreaseSignedUp();
-            addedOfferings.remove(code);
+    private AddedOffering getOneAddedOfferingFromDB(String courseCode) throws SQLException, CourseNotFoundException {
+        AddedOffering addedOffering = null;
+        Connection connection = ConnectionPool.getConnection();
+        PreparedStatement statement = connection.prepareStatement(
+                String.format("select * from %s a where a.studentId = ? and a.courseCode = ?;", Database.getDatabase().getAddedOfferingTableName()));
+        statement.setString(1, this.studentId);
+        statement.setString(2, courseCode);
+
+        ResultSet result = statement.executeQuery();
+        if (result.next()) {
+            String classCode = result.getString("classCode");
+            String status = result.getString("status");
+            boolean wantsToRemove = result.getBoolean("wantsToRemove");
+            boolean isWaiting = result.getBoolean("isWaiting");
+            Course course = Database.getDatabase().getCourse(courseCode, classCode);
+            addedOffering = new AddedOffering(course, isWaiting);
+        }
+        result.close();
+        statement.close();
+        connection.close();
+        return addedOffering;
+    }
+
+    private void removeAddedOfferingFromWeekly(AddedOffering addedOffering) throws SQLException {
+        Connection connection = ConnectionPool.getConnection();
+        PreparedStatement statement = connection.prepareStatement(
+                String.format("delete from %s where studentId = ? and courseCode = ? and classCode = ?;", Database.getDatabase().getAddedOfferingTableName()));
+        statement.setString(1, this.studentId);
+        statement.setString(2, addedOffering.getCourse().getCode());
+        statement.setString(2, addedOffering.getCourse().getClassCode());
+
+        int result = statement.executeUpdate();
+        statement.close();
+        connection.close();
+    }
+
+    public void removeFromWeeklySchedule(String code) throws CourseNotFoundException, SQLException {
+        if (checkRepeatedAddedOffering(code, "", studentId)) {
+            AddedOffering addedOffering = getOneAddedOfferingFromDB(code);
+            if (addedOffering.getFinalized() == Status.finalized)
+                removeAddedOfferingFromWeekly(addedOffering);
         }
         else
             throw new CourseNotFoundException(code);
     }
 
-    public int getFinalizedUnits() {
+    public int getFinalizedUnits() throws SQLException, CourseNotFoundException {
         finalizedUnits = 0;
-        for (AddedOffering offering : addedOfferings.values())
+        for (AddedOffering offering : getAddedOfferingsFromDB())
             if (offering.getFinalized() == Status.finalized && offering.getStatus().equals("Enrolled"))
                 finalizedUnits += offering.course.getUnits();
 
@@ -256,9 +373,9 @@ public class Student {
         this.gpa = (float) (sum_of_grades / total_units);
     }
 
-    public boolean checkFinalizeConditions() throws PrerequisiteException, CourseCapacityException, MinimumRequiredUnitsException, MaximumAllowedUnitsException, AlreadyPassedCourseException {
+    public boolean checkFinalizeConditions() throws PrerequisiteException, CourseCapacityException, MinimumRequiredUnitsException, MaximumAllowedUnitsException, AlreadyPassedCourseException, SQLException, CourseNotFoundException {
         Integer totalUnits = 0;
-        for (AddedOffering offering : this.addedOfferings.values()) {
+        for (AddedOffering offering : getAddedOfferingsFromDB()) {
             Course course = offering.getCourse();
             if (offering.isWantsToRemove())
                 continue;

@@ -60,7 +60,7 @@ public class CourseController {
     }
 
     @DeleteMapping(value = "/course", produces = MediaType.APPLICATION_JSON_VALUE)
-    public HashMap<String, String> RemoveCourse(@RequestParam(value = "courseCode") String courseCode) throws SQLException, StudentNotFoundException {
+    public HashMap<String, String> RemoveCourse(@RequestParam(value = "courseCode") String courseCode) throws SQLException, StudentNotFoundException, CourseNotFoundException {
         Database database = Database.getDatabase();
         Student student = database.getCurrentStudent();
         Student.AddedOffering offering = student.getAddedOfferings().get(courseCode);
