@@ -28,6 +28,8 @@ public class Student {
     private String level;
     private String status;
     private String img;
+    private String email;
+    private String password;
 
     public HashMap<Integer, HashMap<String, Double>> getTermGrades() {
         return termGrades;
@@ -68,6 +70,10 @@ public class Student {
     public String getImg() {
         return img;
     }
+
+    public String getEmail() { return email; }
+
+    public String getHashedPassword() { return password; }
 
     public enum Status {
         finalized,
@@ -220,7 +226,7 @@ public class Student {
     }
 
     public Student(String studentId, String name, String secondName, String birthDate, String field, String faculty,
-                   String level, String status, String img) {
+                   String level, String status, String img, String email, String password) {
         this.studentId = studentId;
         this.name = name;
         this.secondName = secondName;
@@ -230,6 +236,8 @@ public class Student {
         this.level = level;
         this.status = status;
         this.img = img;
+        this.email = email;
+        this.password = password;
     }
 
     public String getStudentId() {

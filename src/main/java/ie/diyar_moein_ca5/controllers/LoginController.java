@@ -3,6 +3,7 @@ package ie.diyar_moein_ca5.controllers;
 import ie.diyar_moein_ca5.Classes.Database;
 import ie.diyar_moein_ca5.Exceptions.CourseNotFoundException;
 import ie.diyar_moein_ca5.Exceptions.StudentNotFoundException;
+import ie.diyar_moein_ca5.Exceptions.WrongPasswordException;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,16 +17,21 @@ import java.util.HashMap;
 public class LoginController {
 
     @PostMapping(value = "/login", produces = MediaType.APPLICATION_JSON_VALUE)
-    public HashMap<String, String> login(@RequestParam(value = "studentId") String studentId) throws SQLException {
+    public HashMap<String, String> login(@RequestParam(value = "email") String email,
+                                         @RequestParam(value = "password") String password) throws SQLException {
         Database database = Database.getDatabase();
         HashMap<String, String> response = new HashMap<>();
         try {
-            database.setCurrentStudent(studentId);
+            database.setCurrentStudent(email, password);      /// TODO: Fix this
             response.put("code", "200");
             response.put("message", "login successfully");
         } catch (StudentNotFoundException | CourseNotFoundException e) {
             database.setErrorMessage("Student Not Found!");
             response.put("code", "404");
+            response.put("message", database.getErrorMessage());
+        }  catch (WrongPasswordException e) {
+            database.setErrorMessage("Wrong Password!");
+            response.put("code", "403");
             response.put("message", database.getErrorMessage());
         }
         return response;

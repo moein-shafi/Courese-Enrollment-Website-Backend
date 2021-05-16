@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.io.Resources;
+import com.google.common.hash.Hashing;
+
 import ie.diyar_moein_ca5.Exceptions.*;
 import ie.diyar_moein_ca5.repository.ConnectionPool;
 import org.apache.commons.io.FileUtils;
@@ -46,6 +48,19 @@ public class Database {
         objectMapper = new ObjectMapper();
     }
 
+    public void signup(String studentId, String firstName, String secondName,
+                       String birthDate, String field, String faculty,
+                       String level, String email, String password) throws StudentAlreadySignedUpException, SQLException {
+        /// TODO: check empty inputs in frontend.
+        if (checkStudentIdRepeating(studentId)) {
+            String status = "مشغول به تحصیل";
+            String img = "http://138.197.181.131:5200/img/default.jpg";
+            this.addStudentToDB(studentId, firstName, secondName, birthDate, field, faculty, level, status, img, email, password);
+        }
+        else
+            throw new StudentAlreadySignedUpException();
+    }
+
     public String getAddedOfferingTableName() {
         return AddedOfferingTableName;
     }
@@ -65,7 +80,8 @@ public class Database {
         String command = String.format("CREATE TABLE IF NOT EXISTS %s", StudentTableName);
         command += String.format("(studentId CHAR(50),\nname CHAR(225),\nsecondName CHAR(225),\nbirthDate CHAR(100),");
         command += String.format("\nfield CHAR(100),\nfaculty CHAR(100),\nlevel CHAR(100),\nstatus CHAR(100),");
-        command += String.format("\nimg CHAR(225), \nPRIMARY KEY(studentId));");
+        command += String.format("\nimg CHAR(225), \nemail CHAR(100), \npassword CHAR(255), ");
+        command += String.format("\nPRIMARY KEY(studentId));");
         PreparedStatement createStudentTableStatement = connection.prepareStatement(command);
         createStudentTableStatement.executeUpdate();
         createStudentTableStatement.close();
@@ -162,9 +178,21 @@ public class Database {
         this.searchKey = searchKey;
     }
 
-    public void setCurrentStudent(String studentId) throws StudentNotFoundException, SQLException, CourseNotFoundException {
-        if (database.getStudent(studentId) != null)
-            this.currentStudent = studentId;
+    private boolean PasswordIsCorrect(Student student, String password) throws SQLException {
+        String userPassword = student.getHashedPassword();
+        password = Hashing.sha256().hashString(password, StandardCharsets.UTF_8).toString();
+        return password.equals(userPassword);
+    }
+
+    public void setCurrentStudent(String email, String password) throws StudentNotFoundException, SQLException, CourseNotFoundException, WrongPasswordException {
+        Student student = database.getStudent(email);
+        if (student != null) {
+            if (!PasswordIsCorrect(student, password))
+                throw new WrongPasswordException();
+            this.currentStudent = email;
+        }
+        else
+            throw new StudentNotFoundException();
     }
 
     public Student getCurrentStudent() throws SQLException, StudentNotFoundException, CourseNotFoundException {
@@ -192,7 +220,7 @@ public class Database {
     }
 
     public void getStudentsFromAPI() throws Exception {
-        String response = sendGetRequestToURL("http://138.197.181.131:5100/api/students");
+        String response = sendGetRequestToURL("http://138.197.181.131:5200/api/students");
         JsonNode jsonNode = objectMapper.readTree(response);
         for (int i = 0; i < jsonNode.size(); i++)
         {
@@ -202,11 +230,16 @@ public class Database {
 
     public void getGradesFromAPI() throws Exception {
         for (String studentId : getStudentFromDB()) {
-            String response = sendGetRequestToURL("http://138.197.181.131:5100/api/grades/" + studentId);
+            String response = sendGetRequestToURL("http://138.197.181.131:5200/api/grades/" + studentId);
             JsonNode jsonNode = objectMapper.readTree(response);
+
             HashMap<Integer, HashMap<String, Double>> termGrades = new HashMap<>();
             for (int i = 0; i < jsonNode.size(); i++)
             {
+                if (jsonNode.get(i) == null) {
+                    break;
+                }
+
                 Integer termNumber = jsonNode.get(i).get("term").asInt();
                 String courseCode = jsonNode.get(i).get("code").asText();
                 Double grade = jsonNode.get(i).get("grade").asDouble();
@@ -280,7 +313,7 @@ public class Database {
 
 
     public void getCoursesFromAPI() throws Exception {
-        String response = sendGetRequestToURL("http://138.197.181.131:5100/api/courses");
+        String response = sendGetRequestToURL("http://138.197.181.131:5200/api/courses");
         JsonNode jsonNode = objectMapper.readTree(response);
 
         for (int i = 0; i < jsonNode.size(); i++)
@@ -296,7 +329,7 @@ public class Database {
     }
 
     public String addStudent(String data) throws JsonProcessingException, SQLException {
-        String studentId, name, secondName, birthDate, field, faculty, level, status, img;
+        String studentId, name, secondName, birthDate, field, faculty, level, status, img, email, password;
         try {
             JsonNode jsonNode = objectMapper.readTree(data);
             studentId = jsonNode.get("id").asText();
@@ -308,12 +341,14 @@ public class Database {
             level = jsonNode.get("level").asText();
             status = jsonNode.get("status").asText();
             img = jsonNode.get("img").asText();
+            email = jsonNode.get("email").asText();
+            password = jsonNode.get("password").asText();
 
         } catch (Exception e) {
             return createJsonOutput("false", "Your input was in wrong format!");
         }
         if (checkStudentIdRepeating(studentId)) {
-            this.addStudentToDB(studentId, name, secondName, birthDate, field, faculty, level, status, img);
+            this.addStudentToDB(studentId, name, secondName, birthDate, field, faculty, level, status, img, email, password);
             return createJsonOutput("true", "Classes.Student '" + studentId + "' successfully added.");
         }
         return createJsonOutput("false", "This 'studentId' has already been added before!");
@@ -321,12 +356,13 @@ public class Database {
 
     private void addStudentToDB(String studentId, String name, String secondName,
                                 String birthDate, String field, String faculty,
-                                String level, String status, String img) throws SQLException {
+                                String level, String status, String img,
+                                String email, String password) throws SQLException {
 
         Connection connection = ConnectionPool.getConnection();
         PreparedStatement statement = connection.prepareStatement(String.format(
-                "insert into %s (studentId, name, secondName, birthDate, field, faculty, level, status, img)"
-                        + "values (?, ?, ?, ?, ?, ?, ?, ?, ?);", StudentTableName));
+                "insert into %s (studentId, name, secondName, birthDate, field, faculty, level, status, img, email, password)"
+                        + "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);", StudentTableName));
         statement.setString(1, studentId);
         statement.setString(2, name);
         statement.setString(3, secondName);
@@ -336,13 +372,17 @@ public class Database {
         statement.setString(7, level);
         statement.setString(8, status);
         statement.setString(9, img);
+        statement.setString(10, email);
+
+        String passwordHash = Hashing.sha256().hashString(password, StandardCharsets.UTF_8).toString();
+        statement.setString(11, passwordHash);
 
         statement.executeUpdate();
         statement.close();
         connection.close();
     }
 
-    public boolean checkStudentIdRepeating(String studentId) throws SQLException{
+    public boolean checkStudentIdRepeating(String studentId) throws SQLException {
         Connection connection = ConnectionPool.getConnection();
         PreparedStatement statement = connection.prepareStatement(
                 String.format("select studentId from %s s where s.studentId = ?;", StudentTableName));
@@ -512,12 +552,11 @@ public class Database {
             student.addToWeeklySchedule(course, false);
     }
 
-    public Student getStudent(String studentId) throws StudentNotFoundException, SQLException, CourseNotFoundException {
-
+    public Student getStudent(String email) throws StudentNotFoundException, SQLException, CourseNotFoundException {
         Connection connection = ConnectionPool.getConnection();
         PreparedStatement statement = connection.prepareStatement(
-                String.format("select * from %s s where s.studentId = ?;", StudentTableName));
-        statement.setString(1, studentId);
+                String.format("select * from %s s where s.email = ?;", StudentTableName));
+        statement.setString(1, email);
         ResultSet result = statement.executeQuery();
         Student student = null;
         boolean exist = result.next();
@@ -530,11 +569,13 @@ public class Database {
                                result.getString("faculty"),
                                result.getString("level"),
                                result.getString("status"),
-                               result.getString("img"));
+                               result.getString("img"),
+                               result.getString("email"),
+                               result.getString("password"));
         result.close();
         PreparedStatement grades_statement = connection.prepareStatement(
                 String.format("select * from %s where studentId = ? order by termNumber;", TermTableName));
-        grades_statement.setString(1, studentId);
+        grades_statement.setString(1, email);
         ResultSet grades_result = grades_statement.executeQuery();
 
         HashMap<Integer, HashMap<String, Double>> termGrades = new HashMap<>();
