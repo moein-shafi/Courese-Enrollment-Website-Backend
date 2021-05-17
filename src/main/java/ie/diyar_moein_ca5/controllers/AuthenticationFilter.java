@@ -29,14 +29,27 @@ public class AuthenticationFilter implements Filter {
             throws IOException, ServletException {
         try {
             String uri = ((HttpServletRequest)servletRequest).getRequestURI();
+            System.out.println("uri:" + uri);
             if(uri.contains("signup") || uri.contains("login")) {
                 chain.doFilter(servletRequest, servletResponse);
+                System.out.println("Inside if");
                 return;
             }
             JWTVerifier verifier = JWT.require(JWTAuthentication.algorithm)
                     .withIssuer("bolbolestan.ir")
                     .build();
+            System.out.println(((HttpServletRequest)servletRequest).getCookies());
+            System.out.println(((HttpServletRequest)servletRequest).getQueryString());
+
+            var a = ((HttpServletRequest)servletRequest).getHeaderNames();
+            while (a.hasMoreElements())
+            {
+                System.out.println(a.nextElement());
+            }
+            System.out.println();
             String header = ((HttpServletRequest)servletRequest).getHeader("Authorization");
+            System.out.println("Header:" + header);
+
             if(header != null) {
                 header = header.substring(7);
                 DecodedJWT jwt;
