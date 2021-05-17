@@ -5,8 +5,13 @@ import ie.diyar_moein_ca5.Exceptions.CourseNotFoundException;
 import ie.diyar_moein_ca5.Exceptions.StudentAlreadySignedUpException;
 import ie.diyar_moein_ca5.Exceptions.StudentNotFoundException;
 import ie.diyar_moein_ca5.Exceptions.WrongPasswordException;
+import ie.diyar_moein_ca5.controllers.Requests.JWTSignupRequest;
+import ie.diyar_moein_ca5.controllers.Response.JWTTokenResponse;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -17,29 +22,25 @@ import java.util.HashMap;
 public class SignupController {
 
     @PostMapping(value = "/signup", produces = MediaType.APPLICATION_JSON_VALUE)
-    public HashMap<String, String> signup(@RequestParam(value = "studentId") String studentId,
-                                          @RequestParam(value = "firstName") String firstName,
-                                          @RequestParam(value = "secondName") String secondName,
-                                          @RequestParam(value = "birthDate") String birthDate,
-                                          @RequestParam(value = "field") String field,
-                                          @RequestParam(value = "faculty") String faculty,
-                                          @RequestParam(value = "level") String level,
-                                          @RequestParam(value = "email") String email,
-                                          @RequestParam(value = "password") String password
-                                          ) throws SQLException {
-        Database database = Database.getDatabase();
-        HashMap<String, String> response = new HashMap<>();
+    public ResponseEntity<?> signup(@RequestBody final JWTSignupRequest request) {
         try {
-            /// TODO: check email repeated.
-            /// TODO: make email as 'UNIQUE' in students table.
-            database.signup(studentId, firstName, secondName, birthDate, field, faculty, level, email, password);
-            response.put("code", "200");
-            response.put("message", "signup successfully");
-        } catch (StudentAlreadySignedUpException e) {
-            database.setErrorMessage("Student " + studentId + "has already signed up.!");
-            response.put("code", "404");
-            response.put("message", database.getErrorMessage());
+            Database.getDatabase().signup(
+                    request.getStudentId(),
+                    request.getFirstName(),
+                    request.getSecondName(),
+                    request.getBirthDate(),
+                    request.getField(),
+                    request.getFaculty(),
+                    request.getLevel(),
+                    request.getEmail(),
+                    request.getPassword());
+
+            String token = Database.getDatabase().login(request.getEmail(), request.getPassword());
+            return ResponseEntity.status(HttpStatus.OK).body(new JWTTokenResponse(token, request.getEmail()));
+        } catch (StudentAlreadySignedUpException | SQLException | StudentNotFoundException |
+                CourseNotFoundException | WrongPasswordException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
-        return response;
+
     }
 }

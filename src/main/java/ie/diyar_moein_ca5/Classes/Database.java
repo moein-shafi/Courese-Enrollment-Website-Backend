@@ -1,5 +1,11 @@
 package ie.diyar_moein_ca5.Classes;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.JWTVerifier;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.exceptions.JWTCreationException;
+import com.auth0.jwt.exceptions.JWTVerificationException;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -8,6 +14,7 @@ import com.google.common.io.Resources;
 import com.google.common.hash.Hashing;
 
 import ie.diyar_moein_ca5.Exceptions.*;
+import ie.diyar_moein_ca5.Services.JWTAuthentication;
 import ie.diyar_moein_ca5.repository.ConnectionPool;
 import org.apache.commons.io.FileUtils;
 
@@ -184,12 +191,14 @@ public class Database {
         return password.equals(userPassword);
     }
 
-    public void setCurrentStudent(String email, String password) throws StudentNotFoundException, SQLException, CourseNotFoundException, WrongPasswordException {
+    public String login(String email, String password) throws StudentNotFoundException, SQLException, CourseNotFoundException, WrongPasswordException {
         Student student = database.getStudent(email);
         if (student != null) {
             if (!PasswordIsCorrect(student, password))
                 throw new WrongPasswordException();
             this.currentStudent = email;
+            return JWTAuthentication.createAndSignToken(email);
+
         }
         else
             throw new StudentNotFoundException();
@@ -572,10 +581,12 @@ public class Database {
                                result.getString("img"),
                                result.getString("email"),
                                result.getString("password"));
+
+        String studentId = result.getString("studentId");
         result.close();
         PreparedStatement grades_statement = connection.prepareStatement(
                 String.format("select * from %s where studentId = ? order by termNumber;", TermTableName));
-        grades_statement.setString(1, email);
+        grades_statement.setString(1, studentId);
         ResultSet grades_result = grades_statement.executeQuery();
 
         HashMap<Integer, HashMap<String, Double>> termGrades = new HashMap<>();

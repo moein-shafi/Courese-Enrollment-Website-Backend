@@ -4,11 +4,13 @@ import ie.diyar_moein_ca5.Classes.Database;
 import ie.diyar_moein_ca5.Exceptions.CourseNotFoundException;
 import ie.diyar_moein_ca5.Exceptions.StudentNotFoundException;
 import ie.diyar_moein_ca5.Exceptions.WrongPasswordException;
+import ie.diyar_moein_ca5.controllers.Requests.JWTLoginRequest;
+import ie.diyar_moein_ca5.controllers.Response.JWTTokenResponse;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -17,25 +19,16 @@ import java.util.HashMap;
 public class LoginController {
 
     @PostMapping(value = "/login", produces = MediaType.APPLICATION_JSON_VALUE)
-    public HashMap<String, String> login(@RequestParam(value = "email") String email,
-                                         @RequestParam(value = "password") String password) throws SQLException {
-        Database database = Database.getDatabase();
-        HashMap<String, String> response = new HashMap<>();
-        try {
-            database.setCurrentStudent(email, password);      /// TODO: Fix this
-            response.put("code", "200");
-            response.put("message", "login successfully");
-        } catch (StudentNotFoundException | CourseNotFoundException e) {
-            database.setErrorMessage("Student Not Found!");
-            response.put("code", "404");
-            response.put("message", database.getErrorMessage());
-        }  catch (WrongPasswordException e) {
-            database.setErrorMessage("Wrong Password!");
-            response.put("code", "403");
-            response.put("message", database.getErrorMessage());
+    public ResponseEntity<?> login(@RequestBody JWTLoginRequest request) {
+        try{
+            String token =  Database.getDatabase().login(request.getEmail(), request.getPassword());
+            return  ResponseEntity.status(HttpStatus.OK).body(new JWTTokenResponse(token,request.getEmail()));
+
+        } catch (WrongPasswordException | StudentNotFoundException | SQLException | CourseNotFoundException e) {
+            return  ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
-        return response;
     }
+
 
     @DeleteMapping(value ="/login", produces = MediaType.APPLICATION_JSON_VALUE)
     public HashMap<String, String> logout() throws SQLException {

@@ -17,29 +17,21 @@ public class ProfileModel {
     private Integer code;
     private String message;
 
-    public ProfileModel() throws CourseNotFoundException, SQLException, StudentNotFoundException {
+    public ProfileModel(Student student) throws CourseNotFoundException, SQLException, StudentNotFoundException {
         Database database = Database.getDatabase();
-        try {
-            student = database.getCurrentStudent();
-            code = 200;
-            message = "profile data is ready.";
-        }
-        catch (StudentNotFoundException e)
-        {
-            code = 401;
-            message = "login first!";
-        }
-
+        this.student = student;
+        code = 200;
+        message = "profile data is ready.";
 
         for (Integer termNumber : student.getTermGrades().keySet()) {
             ArrayList<Course> courses = new ArrayList<>();
-                for (String code : student.getTermGrades().get(termNumber).keySet()) {
-                    Double grade = student.getTermGrades().get(termNumber).get(code);
-                    courses.add(database.getCourse(code));
-                    if (grade < 10)
-                        continue;
-                    passedCourses.put(code, grade);
-                }
+            for (String code : student.getTermGrades().get(termNumber).keySet()) {
+                Double grade = student.getTermGrades().get(termNumber).get(code);
+                courses.add(database.getCourse(code));
+                if (grade < 10)
+                    continue;
+                passedCourses.put(code, grade);
+            }
             termCourses.put(termNumber, courses);
         }
 
