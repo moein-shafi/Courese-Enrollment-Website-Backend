@@ -24,12 +24,15 @@ public class LoginController {
             String token =  Database.getDatabase().login(request.getEmail(), request.getPassword());
             return  ResponseEntity.status(HttpStatus.OK).body(new JWTTokenResponse(token,request.getEmail()));
 
+            /// TODO: add 403 for these
         } catch (WrongPasswordException | StudentNotFoundException | SQLException | CourseNotFoundException e) {
             return  ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+
         }
     }
 
 
+    /// TODO: handle logout in frontend
     @DeleteMapping(value ="/login", produces = MediaType.APPLICATION_JSON_VALUE)
     public HashMap<String, String> logout() throws SQLException {
         Database database = Database.getDatabase();
