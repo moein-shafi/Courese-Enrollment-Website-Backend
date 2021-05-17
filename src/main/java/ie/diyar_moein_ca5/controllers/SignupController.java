@@ -23,6 +23,8 @@ public class SignupController {
 
     @PostMapping(value = "/signup", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> signup(@RequestBody final JWTSignupRequest request) {
+        HashMap<String, String> response = new HashMap<>();
+
         try {
             Database.getDatabase().signup(
                     request.getStudentId(),
@@ -37,10 +39,31 @@ public class SignupController {
 
             String token = Database.getDatabase().login(request.getEmail(), request.getPassword());
             return ResponseEntity.status(HttpStatus.OK).body(new JWTTokenResponse(token, request.getEmail()));
-        } catch (StudentAlreadySignedUpException | SQLException | StudentNotFoundException |
-                CourseNotFoundException | WrongPasswordException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        }
 
+        } catch (StudentAlreadySignedUpException e) {
+            response.put("code", String.valueOf(HttpStatus.NOT_ACCEPTABLE));
+            response.put("message", "Student Already Signed Up!");
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+
+        } catch (WrongPasswordException e) {
+            response.put("code", String.valueOf(HttpStatus.FORBIDDEN));
+            response.put("message", "Wrong password!");
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+
+        } catch (SQLException e) {
+            response.put("code", String.valueOf(HttpStatus.NOT_ACCEPTABLE));
+            response.put("message", "DataBase Error!");
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+
+        } catch (StudentNotFoundException e) {
+            response.put("code", String.valueOf(HttpStatus.NOT_FOUND));
+            response.put("message", "Student Not Found!");
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+
+        } catch (CourseNotFoundException e) {
+            response.put("code", String.valueOf(HttpStatus.NOT_FOUND));
+            response.put("message", "Course Not Found!");
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+        }
     }
 }

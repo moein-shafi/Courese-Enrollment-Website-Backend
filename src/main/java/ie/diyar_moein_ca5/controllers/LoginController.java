@@ -20,26 +20,31 @@ public class LoginController {
 
     @PostMapping(value = "/login", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> login(@RequestBody JWTLoginRequest request) {
+        HashMap<String, String> response = new HashMap<>();
+
         try{
             String token =  Database.getDatabase().login(request.getEmail(), request.getPassword());
             return  ResponseEntity.status(HttpStatus.OK).body(new JWTTokenResponse(token,request.getEmail()));
 
-            /// TODO: add 403 for these
-        } catch (WrongPasswordException | StudentNotFoundException | SQLException | CourseNotFoundException e) {
-            return  ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (WrongPasswordException e) {
+            response.put("code", String.valueOf(HttpStatus.FORBIDDEN));
+            response.put("message", "Wrong password!");
+            return ResponseEntity.status(HttpStatus.OK).body(response);
 
+        } catch (SQLException e) {
+            response.put("code", String.valueOf(HttpStatus.NOT_ACCEPTABLE));
+            response.put("message", "DataBase Error!");
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+
+        } catch (StudentNotFoundException e) {
+            response.put("code", String.valueOf(HttpStatus.NOT_FOUND));
+            response.put("message", "Student Not Found!");
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+
+        } catch (CourseNotFoundException e) {
+            response.put("code", String.valueOf(HttpStatus.NOT_FOUND));
+            response.put("message", "Course Not Found!");
+            return ResponseEntity.status(HttpStatus.OK).body(response);
         }
-    }
-
-
-    /// TODO: handle logout in frontend
-    @DeleteMapping(value ="/login", produces = MediaType.APPLICATION_JSON_VALUE)
-    public HashMap<String, String> logout() throws SQLException {
-        Database database = Database.getDatabase();
-        HashMap<String, String> response = new HashMap<>();
-        database.logout();
-        response.put("code", "200");
-        response.put("message", "logged out successfully");
-        return response;
     }
 }
