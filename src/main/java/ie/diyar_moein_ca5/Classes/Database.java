@@ -718,7 +718,6 @@ public class Database {
         return htmlString;
     }
     public void checkWaitingLists() throws AlreadyAddedCourseToPlanException, ExamsTimeColisionException, ClassesTimeCollisionException, SQLException, CourseNotFoundException {
-        /// TODO: this
         for (Course course : this.courses) {
             course.checkWaitingList();
         }
