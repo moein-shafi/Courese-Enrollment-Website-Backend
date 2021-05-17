@@ -4,8 +4,13 @@ import ie.diyar_moein_ca5.Classes.Course;
 import ie.diyar_moein_ca5.Classes.Database;
 import ie.diyar_moein_ca5.Classes.Student;
 import ie.diyar_moein_ca5.Exceptions.*;
+import ie.diyar_moein_ca5.controllers.Requests.JWTAddCourseRequest;
+import ie.diyar_moein_ca5.controllers.Requests.JWTDeleteCourseRequest;
+import ie.diyar_moein_ca5.controllers.Requests.JWTSubmitCoursesRequest;
 import ie.diyar_moein_ca5.controllers.models.CourseModel;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.SQLException;
@@ -14,78 +19,114 @@ import java.util.HashMap;
 
 @RestController
 public class CourseController {
-    @PutMapping(value = "/course", produces = MediaType.APPLICATION_JSON_VALUE)
-    public HashMap<String, String> AddCourse(
-            @RequestParam(value = "courseCode") String courseCode,
-            @RequestParam(value = "classCode") String classCode,
-            @RequestParam(value = "isWaiting", defaultValue = "false") boolean isWaiting) throws SQLException, StudentNotFoundException {
 
-        Database database = Database.getDatabase();
+        @PutMapping(value = "/course", produces = MediaType.APPLICATION_JSON_VALUE)
+        public ResponseEntity<?> AddCourse(@RequestAttribute("id") String email,
+                                            @RequestBody final JWTAddCourseRequest request) {
+
         HashMap<String, String> response = new HashMap<>();
         String message, code = "200";
         try {
-            Student student = database.getCurrentStudent();
-
-            Course course = database.getCourse(courseCode, classCode);
-            student.addToWeeklySchedule(database.getCourse(courseCode, classCode), isWaiting);
+            Student student = Database.getDatabase().getStudent(email);
+            String courseCode = request.getCourseCode();
+            String classCode = request.getClassCode();
+            boolean isWaiting = request.isWaiting();
+            Course course = Database.getDatabase().getCourse(courseCode, classCode);
+            student.addToWeeklySchedule(Database.getDatabase().getCourse(courseCode, classCode), isWaiting);
             if (isWaiting)
                 message = course.getName() + " Successfully added to waiting list.";
 
             else
                 message = course.getName() + " Successfully added.";
 
+            response.put("code", code);
+            response.put("message", message);
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+
         } catch (CourseNotFoundException e) {
-            message = "Course Not Found!";
-            code = "404";
-            database.setErrorMessage(message);
+            response.put("code", String.valueOf(HttpStatus.NOT_FOUND));
+            response.put("message", "Course Not Found!");
+            return ResponseEntity.status(HttpStatus.OK).body(response);
 
         } catch (ClassesTimeCollisionException e) {
-            message = "Classes Time Collision Error For: " + e.getMessage();
-            code = "400";
-            database.setErrorMessage(message);
+            response.put("code", String.valueOf(HttpStatus.NOT_ACCEPTABLE));
+            response.put("message", "Classes Time Collision Error For: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.OK).body(response);
 
-        }catch (ExamsTimeColisionException e) {
-            message = "Exams Time Collision Error For: " + e.getMessage();
-            code = "400";
-            database.setErrorMessage(message);
+        } catch (ExamsTimeColisionException e) {
+            response.put("code", String.valueOf(HttpStatus.NOT_ACCEPTABLE));
+            response.put("message", "Exams Time Collision Error For: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.OK).body(response);
 
         } catch (AlreadyAddedCourseToPlanException e) {
-            message = "Course " + e.getMessage() + " Already Added To Plan!";
-            code = "400";
-            database.setErrorMessage(message);
+            response.put("code", String.valueOf(HttpStatus.NOT_ACCEPTABLE));
+            response.put("message", "Course " + e.getMessage() + " Already Added To Plan!");
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+
+        } catch (SQLException e) {
+            response.put("code", String.valueOf(HttpStatus.NOT_ACCEPTABLE));
+            response.put("message", "DataBase Error!");
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+
+        } catch (StudentNotFoundException e) {
+            response.put("code", String.valueOf(HttpStatus.NOT_FOUND));
+            response.put("message", "Student Not Found!");
+            return ResponseEntity.status(HttpStatus.OK).body(response);
         }
-        response.put("code", code);
-        response.put("message", message);
-        return response;
+
     }
 
     @DeleteMapping(value = "/course", produces = MediaType.APPLICATION_JSON_VALUE)
-    public HashMap<String, String> RemoveCourse(@RequestParam(value = "courseCode") String courseCode) throws SQLException, StudentNotFoundException, CourseNotFoundException {
-        Database database = Database.getDatabase();
-        Student student = database.getCurrentStudent();
-        Student.AddedOffering offering = student.getAddedOfferings().get(courseCode);
-        offering.setToRemove();
+    public ResponseEntity<?> RemoveCourse(@RequestAttribute("id") String email,
+                                       @RequestBody final JWTDeleteCourseRequest request) {
+        Student student = null;
         HashMap<String, String> response = new HashMap<>();
-        String message;
-        response.put("code", "200");
-        response.put("message", offering.getCourse().getName() + " successfully removed.");
-        return response;
+
+        try {
+            student = Database.getDatabase().getStudent(email);
+            String courseCode = request.getCourseCode();
+            Student.AddedOffering offering = student.getAddedOfferings().get(courseCode);
+            offering.setToRemove();
+            String message;
+            response.put("code", "200");
+            response.put("message", offering.getCourse().getName() + " successfully removed.");
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+
+        } catch (SQLException e) {
+            response.put("code", String.valueOf(HttpStatus.NOT_ACCEPTABLE));
+            response.put("message", "DataBase Error!");
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+
+        } catch (StudentNotFoundException e) {
+            response.put("code", String.valueOf(HttpStatus.NOT_FOUND));
+            response.put("message", "Student Not Found!");
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+
+        } catch (CourseNotFoundException e) {
+            response.put("code", String.valueOf(HttpStatus.NOT_FOUND));
+            response.put("message", "Course Not Found!");
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+        }
     }
 
     @GetMapping(value = "/course", produces = MediaType.APPLICATION_JSON_VALUE)
-    public CourseModel course() throws SQLException, CourseNotFoundException, StudentNotFoundException {
-        Database database = Database.getDatabase();
-        return new CourseModel();
+    public ResponseEntity<?> course(@RequestAttribute("id") String email) {
+        try {
+            return ResponseEntity.status(HttpStatus.OK).body(new CourseModel());
+        } catch (StudentNotFoundException | SQLException | CourseNotFoundException e){
+            return  ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
     }
 
     @PostMapping(value = "/course", produces = MediaType.APPLICATION_JSON_VALUE)
-    public HashMap<String, String> Submit(@RequestParam(value = "action") String action) throws SQLException, StudentNotFoundException, CourseNotFoundException {
-        Database database = Database.getDatabase();
+    public ResponseEntity<?> course(@RequestAttribute("id") String email,
+                                    @RequestBody final JWTSubmitCoursesRequest request) {
         HashMap<String, String> response = new HashMap<>();
         String message = "Successfully submitted.";
         String code = "200";
-        Student student = database.getCurrentStudent();
+        String action = request.getAction();
         try {
+            Student student = Database.getDatabase().getStudent(email);
             ArrayList<String> forDeleteCourses = new ArrayList<String>();
             if (action.equals("submit")) {
                 student.checkFinalizeConditions();
@@ -100,7 +141,6 @@ public class CourseController {
 
                     }
                 }
-
             }
             else {
 
@@ -115,42 +155,50 @@ public class CourseController {
             }
             for (String courseCode : forDeleteCourses)
                 student.removeFromWeeklySchedule(courseCode);
+            response.put("code", code);
+            response.put("message", message);
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+
 
         } catch (CourseNotFoundException e) {
-            message = "Course Not Found!";
-            code = "404";
-            database.setErrorMessage(message);
+            response.put("code", String.valueOf(HttpStatus.NOT_FOUND));
+            response.put("message", "Course Not Found!");
+            return ResponseEntity.status(HttpStatus.OK).body(response);
 
         } catch (PrerequisiteException e) {
-            message = "Prerequisite Error For Course: " + e.getMessage();
-            code = "400";
-            database.setErrorMessage(message);
+            response.put("code", String.valueOf(HttpStatus.NOT_ACCEPTABLE));
+            response.put("message", "Prerequisite Error For Course: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.OK).body(response);
 
         } catch (MinimumRequiredUnitsException e) {
-            message = "Minimum Required Units Error!";
-            code = "400";
-            database.setErrorMessage(message);
+            response.put("code", String.valueOf(HttpStatus.NOT_ACCEPTABLE));
+            response.put("message", "Minimum Required Units Error!");
+            return ResponseEntity.status(HttpStatus.OK).body(response);
 
         } catch (MaximumAllowedUnitsException e) {
-            message = "Maximum Allowed Units Error!";
-            code = "400";
-            database.setErrorMessage(message);
-
+            response.put("code", String.valueOf(HttpStatus.NOT_ACCEPTABLE));
+            response.put("message", "Maximum Allowed Units Error!");
+            return ResponseEntity.status(HttpStatus.OK).body(response);
 
         } catch (CourseCapacityException e) {
-            message = "Course Capacity Error For Course: " + e.getMessage();
-            code = "400";
-            database.setErrorMessage(message);
+            response.put("code", String.valueOf(HttpStatus.NOT_ACCEPTABLE));
+            response.put("message", "Course Capacity Error For Course: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.OK).body(response);
 
         } catch (AlreadyPassedCourseException e) {
-            message = "Already Passed Course: " + e.getMessage();
-            code = "400";
-            database.setErrorMessage(message);
+            response.put("code", String.valueOf(HttpStatus.NOT_ACCEPTABLE));
+            response.put("message", "Already Passed Course: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+
+        } catch (SQLException e) {
+            response.put("code", String.valueOf(HttpStatus.NOT_ACCEPTABLE));
+            response.put("message", "DataBase Error!");
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+
+        } catch (StudentNotFoundException e) {
+            response.put("code", String.valueOf(HttpStatus.NOT_FOUND));
+            response.put("message", "Student Not Found!");
+            return ResponseEntity.status(HttpStatus.OK).body(response);
         }
-
-        response.put("code", code);
-        response.put("message", message);
-        return response;
     }
-
 }

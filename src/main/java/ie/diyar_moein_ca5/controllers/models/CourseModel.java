@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class CourseModel {
-    private Student student;
     private ArrayList<HashMap<String, String>> selectedCourses = new ArrayList<>();
     private HashMap<String, Course> allCourses = new HashMap<>();
     private Integer code;
@@ -19,21 +18,14 @@ public class CourseModel {
 
     public CourseModel() throws SQLException, CourseNotFoundException, StudentNotFoundException {
         Database database = Database.getDatabase();
-        student = database.getCurrentStudent();
-        if (student == null) {
-            code = 401;
-            message = "login first!";
-        } else {
-            code = 200;
-            message = "courses data is ready.";
 
-            for (Course course : database.getCourses()) {
-                allCourses.put(course.getCode() + course.getClassCode(), course);
-            }
+        code = 200;
+        message = "courses data is ready.";
+
+        for (Course course : database.getCourses()) {
+            allCourses.put(course.getCode() + course.getClassCode(), course);
         }
-    }
-    public Student getStudent() {
-        return student;
+
     }
 
     public String getMessage() {
