@@ -10,11 +10,11 @@ public class JWTAuthentication {
     public static Algorithm algorithm = Algorithm.HMAC256("bolbolestan");
 
     public static String  createAndSignToken(String id) {
-        Date expire = new Date();
+        Date time = new Date();
         Calendar calender = Calendar.getInstance();
-        calender.setTime(expire);
-        calender.add(Calendar.HOUR_OF_DAY, 2); /// TODO: check this.
-        expire = calender.getTime();
+        calender.setTime(time);
+        calender.add(Calendar.HOUR_OF_DAY, 24);
+        Date expire = calender.getTime();
 
         return JWT.create()
                 .withIssuer("bolbolestan.ir")

@@ -29,7 +29,7 @@ public class AuthenticationFilter implements Filter {
             throws IOException, ServletException {
         try {
             String uri = ((HttpServletRequest)servletRequest).getRequestURI();
-            if(uri.contains("login") || uri.contains("signup")){
+            if(uri.contains("signup") || uri.contains("login")) {
                 chain.doFilter(servletRequest, servletResponse);
                 return;
             }
@@ -38,7 +38,7 @@ public class AuthenticationFilter implements Filter {
                     .build();
             String header = ((HttpServletRequest)servletRequest).getHeader("Authorization");
             if(header != null) {
-                header = header.substring(7); // - Bearer
+                header = header.substring(7);
                 DecodedJWT jwt;
                 jwt = verifier.verify(header);
                 String id =  jwt.getClaim("id").asString();

@@ -58,7 +58,6 @@ public class Database {
     public void signup(String studentId, String firstName, String secondName,
                        String birthDate, String field, String faculty,
                        String level, String email, String password) throws StudentAlreadySignedUpException, SQLException {
-        /// TODO: check empty inputs in frontend.
         if (checkStudentIdRepeating(studentId)) {
             String status = "مشغول به تحصیل";
             String img = "http://138.197.181.131:5200/img/default.jpg";

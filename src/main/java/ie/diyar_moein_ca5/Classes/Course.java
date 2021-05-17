@@ -112,7 +112,6 @@ public class Course {
     }
 
     public void checkWaitingList() throws AlreadyAddedCourseToPlanException, ExamsTimeColisionException, ClassesTimeCollisionException, SQLException, CourseNotFoundException {
-        /// TODO: this
         while (this.signedUp < this.capacity && this.waitingList.size() >= 1) {
             increaseSignedUp();
             this.waitingList.get(0).removeWaitingStatus(this);

@@ -24,7 +24,7 @@ public class LoginController {
 
         try{
             String token =  Database.getDatabase().login(request.getEmail(), request.getPassword());
-            return  ResponseEntity.status(HttpStatus.OK).body(new JWTTokenResponse(token,request.getEmail()));
+            return  ResponseEntity.status(HttpStatus.OK).body(new JWTTokenResponse(token, request.getEmail()));
 
         } catch (WrongPasswordException e) {
             response.put("code", String.valueOf(HttpStatus.FORBIDDEN));
