@@ -15,10 +15,11 @@ public class CourseModel {
     private HashMap<String, Course> allCourses = new HashMap<>();
     private Integer code;
     private String message;
+    private Student student;
 
-    public CourseModel() throws SQLException, CourseNotFoundException, StudentNotFoundException {
+    public CourseModel(String email) throws SQLException, CourseNotFoundException, StudentNotFoundException {
         Database database = Database.getDatabase();
-
+        student = database.getStudent(email);
         code = 200;
         message = "courses data is ready.";
 
@@ -38,5 +39,9 @@ public class CourseModel {
 
     public Integer getCode() {
         return code;
+    }
+
+    public Student getStudent() {
+        return student;
     }
 }

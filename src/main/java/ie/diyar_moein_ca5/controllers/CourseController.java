@@ -112,7 +112,7 @@ public class CourseController {
     @GetMapping(value = "/course", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> course(@RequestAttribute("id") String email) {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(new CourseModel());
+            return ResponseEntity.status(HttpStatus.OK).body(new CourseModel(email));
         } catch (StudentNotFoundException | SQLException | CourseNotFoundException e){
             return  ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }

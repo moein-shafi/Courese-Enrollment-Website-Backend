@@ -58,9 +58,10 @@ public class Database {
     public void signup(String studentId, String firstName, String secondName,
                        String birthDate, String field, String faculty,
                        String level, String email, String password) throws StudentAlreadySignedUpException, SQLException {
-        if (checkStudentIdRepeating(studentId)) {
+        if (checkStudentIdNotRepeating(studentId) && checkEmailNotRepeating(email)) {
             String status = "مشغول به تحصیل";
             String img = "http://138.197.181.131:5200/img/default.jpg";
+            System.out.println(studentId + firstName + secondName + birthDate + field + faculty + level + status + img + email + password);
             this.addStudentToDB(studentId, firstName, secondName, birthDate, field, faculty, level, status, img, email, password);
         }
         else
@@ -355,7 +356,7 @@ public class Database {
         } catch (Exception e) {
             return createJsonOutput("false", "Your input was in wrong format!");
         }
-        if (checkStudentIdRepeating(studentId)) {
+        if (checkStudentIdNotRepeating(studentId) && checkEmailNotRepeating(email)) {
             this.addStudentToDB(studentId, name, secondName, birthDate, field, faculty, level, status, img, email, password);
             return createJsonOutput("true", "Classes.Student '" + studentId + "' successfully added.");
         }
@@ -390,11 +391,24 @@ public class Database {
         connection.close();
     }
 
-    public boolean checkStudentIdRepeating(String studentId) throws SQLException {
+    public boolean checkStudentIdNotRepeating(String studentId) throws SQLException {
         Connection connection = ConnectionPool.getConnection();
         PreparedStatement statement = connection.prepareStatement(
                 String.format("select studentId from %s s where s.studentId = ?;", StudentTableName));
         statement.setString(1, studentId);
+        ResultSet result = statement.executeQuery();
+        boolean exist = result.next();
+        result.close();
+        statement.close();
+        connection.close();
+        return !exist;
+    }
+
+    public boolean checkEmailNotRepeating(String email) throws SQLException {
+        Connection connection = ConnectionPool.getConnection();
+        PreparedStatement statement = connection.prepareStatement(
+                String.format("select email from %s s where s.email = ?;", StudentTableName));
+        statement.setString(1, email);
         ResultSet result = statement.executeQuery();
         boolean exist = result.next();
         result.close();

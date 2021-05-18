@@ -14,6 +14,7 @@ public class ProfileModel {
     private Student student;
     private HashMap<String, Double> passedCourses = new HashMap<>();
     private HashMap<Integer, ArrayList<Course>> termCourses = new HashMap<>();
+    private HashMap<String, Course> allCourses = new HashMap<>();
     private Integer code;
     private String message;
 
@@ -33,6 +34,9 @@ public class ProfileModel {
                 passedCourses.put(code, grade);
             }
             termCourses.put(termNumber, courses);
+        }
+        for (Course course : database.getCourses()) {
+            allCourses.put(course.getCode() + course.getClassCode(), course);
         }
 
     }
@@ -55,5 +59,9 @@ public class ProfileModel {
 
     public HashMap<Integer, ArrayList<Course>> getTermCourses() {
         return termCourses;
+    }
+
+    public HashMap<String, Course> getAllCourses() {
+        return allCourses;
     }
 }

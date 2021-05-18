@@ -38,7 +38,10 @@ public class SignupController {
                     request.getPassword());
 
             String token = Database.getDatabase().login(request.getEmail(), request.getPassword());
-            return ResponseEntity.status(HttpStatus.OK).body(new JWTTokenResponse(token, request.getEmail()));
+            var jwtResponse = new JWTTokenResponse(token, request.getEmail());
+            jwtResponse.setCode(200);
+            jwtResponse.setMessgae("Signed Up!");
+            return ResponseEntity.status(HttpStatus.OK).body(jwtResponse);
 
         } catch (StudentAlreadySignedUpException e) {
             response.put("code", String.valueOf(HttpStatus.NOT_ACCEPTABLE));
@@ -51,8 +54,9 @@ public class SignupController {
             return ResponseEntity.status(HttpStatus.OK).body(response);
 
         } catch (SQLException e) {
+
             response.put("code", String.valueOf(HttpStatus.NOT_ACCEPTABLE));
-            response.put("message", "DataBase Error!");
+            response.put("message", "DataBase Error!" + e);
             return ResponseEntity.status(HttpStatus.OK).body(response);
 
         } catch (StudentNotFoundException e) {

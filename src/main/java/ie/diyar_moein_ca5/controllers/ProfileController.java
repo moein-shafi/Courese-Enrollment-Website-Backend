@@ -20,7 +20,6 @@ public class ProfileController {
     @GetMapping(value = "/profile", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> profile(@RequestAttribute("id") String email) {
         try {
-            System.out.println("email:" + email);
             return ResponseEntity.status(HttpStatus.OK).body(new ProfileModel(Database.getDatabase().getStudent(email)));
         } catch (StudentNotFoundException | SQLException | CourseNotFoundException e){
             return  ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
