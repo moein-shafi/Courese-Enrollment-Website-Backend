@@ -24,7 +24,10 @@ public class LoginController {
 
         try{
             String token =  Database.getDatabase().login(request.getEmail(), request.getPassword());
-            return  ResponseEntity.status(HttpStatus.OK).body(new JWTTokenResponse(token, request.getEmail()));
+            var jwtResponse = new JWTTokenResponse(token, request.getEmail());
+            jwtResponse.setCode(200);
+            jwtResponse.setMessgae("Logged In!");
+            return ResponseEntity.status(HttpStatus.OK).body(jwtResponse);
 
         } catch (WrongPasswordException e) {
             response.put("code", String.valueOf(HttpStatus.FORBIDDEN));
