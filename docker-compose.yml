@@ -1,61 +1,38 @@
 version: "3.4"
 
-# Define services
 services:
 
   server:
     image: myback
-    # Configuration for building the docker image for the backend service
-    #    build:
-    #      context: ie-ca5-backend # Use an image built from the specified dockerfile in the `Backend` directory.
-    #      dockerfile: Dockerfile
     ports:
-      - "8080:8080" # Forward the exposed port 8080 on the container to port 8080 on the host machine
+      - "8080:8080"
     restart: always
     depends_on:
-      - db # This service depends on mysql. Start that first.
-    networks: # Networks to join (Services on the same network can communicate with each other using their name)
+      - db
+    networks:
       - backend
-      - frontend
 
   client:
     image: myfront
-      #    build:
-        #      context: ie-ca5-frontend # Use an image built from the specified dockerfile in the `Frontend` directory.
-        #      dockerfile: Dockerfile
     ports:
-      - "3000:3000" # Map the exposed port 80 on the container to port 9090 on the host machine
+      - "3000:3000"
     restart: always
     depends_on:
       - server
     networks:
       - backend
-      - frontend
 
-  # Database Service (Mysql)
   db:
     image: mysql:8
     restart: always
     environment:
-        - MYSQL_DATABASES=diyar_moein_ca6
+        - MYSQL_DATABASE=diyar_moein_ca6
         - MYSQL_ROOT_PASSWORD=123456
-        - MYSQL_HOST=127.0.0.1
         - MYSQL_PORT=33060
-          #        - MYSQL_USER=root
-          #        - MYSQL_PASSWORD="123456"
-        - MYSQL_LOYALTY_DATABASE=diyar_moein_ca6
     ports:
         - "33060:3306"
-          #    volumes:
-          #      - db-data:/var/lib/mysql
     networks:
       - backend
 
-# Volumes
-volumes:
-  db-data:
-
-# Networks to be created to facilitate communication between containers
 networks:
   backend:
-  frontend:
