@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db-deployment
+spec:
+  selector:
+    matchLabels:
+      app: db
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: db
+    spec:
+      containers:
+      - image: quay.io/sina/mysql:8.0
+        name: db
+        env:
+        - name: "MYSQL_DATABASE"
+          value: "diyar_moein_ca6"
+        - name: "MYSQL_ROOT_PASSWORD"
+          value: "123456"
+        ports:
+        - containerPort: 3306
+          name: db
+        resources:
+          limits:
+            memory: "500M"
+            cpu: "333m"
+          requests:
+            memory: "500M"
+            cpu: "333m"
+        volumeMounts:
+        - name: mysql-persistent-storage
+          mountPath: /var/lib/mysql
+          subPath: backend-mysql
+      volumes:
+      - name: mysql-persistent-storage
+        persistentVolumeClaim:
+          claimName: mysql-pvc

@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+  namespace: diyar-ns
+spec:
+  replicas: 1
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - image: quay.io/kordboydm/ie_backend:new
+          imagePullPolicy: Always
+          name: backend
+          env:
+            - name: "DB_USERNAME"
+              value: "root"
+            - name: "DB_PASSWORD"
+              value: "123456"
+          ports:
+            - containerPort: 8080
+          resources:
+            limits:
+              memory: "333Mi"
+              cpu: "300m"
+            requests:
+              memory: "333Mi"
+              cpu: "300m"
