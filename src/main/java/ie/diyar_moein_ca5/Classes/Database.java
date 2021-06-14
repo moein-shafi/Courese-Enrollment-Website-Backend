@@ -88,7 +88,7 @@ public class Database {
         command += String.format("(studentId CHAR(50),\nname CHAR(225),\nsecondName CHAR(225),\nbirthDate CHAR(100),");
         command += String.format("\nfield CHAR(100),\nfaculty CHAR(100),\nlevel CHAR(100),\nstatus CHAR(100),");
         command += String.format("\nimg CHAR(225), \nemail CHAR(100), \npassword CHAR(255), ");
-        command += String.format("\nPRIMARY KEY(studentId));");
+        command += String.format("\nPRIMARY KEY(studentId)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
         PreparedStatement createStudentTableStatement = connection.prepareStatement(command);
         createStudentTableStatement.executeUpdate();
         createStudentTableStatement.close();
@@ -98,7 +98,7 @@ public class Database {
         String command = String.format("CREATE TABLE IF NOT EXISTS %s", CourseTableName);
         command += String.format("(courseCode CHAR(50),\nname CHAR(225),\ntype CHAR(100),\nunits INT,");
         command += String.format("\nexamTimeStart CHAR(100),\nexamTimeEnd CHAR(100),");
-        command += String.format("\nPRIMARY KEY(courseCode));");
+        command += String.format("\nPRIMARY KEY(courseCode)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
 
         PreparedStatement createCourseTableStatement = connection.prepareStatement(command);
         createCourseTableStatement.executeUpdate();
@@ -110,7 +110,7 @@ public class Database {
         command += String.format("(courseCode CHAR(50), \nclassCode CHAR(50),\ninstructor CHAR(225),");
         command += String.format("\nfirstClassDay CHAR(100),\nsecondClassDay CHAR(100),\nclassTime CHAR(100),");
         command += String.format("\ncapacity INT, \nPRIMARY KEY(courseCode, classCode),");
-        command += String.format("\nFOREIGN KEY (courseCode) REFERENCES %s(courseCode));", CourseTableName);
+        command += String.format("\nFOREIGN KEY (courseCode) REFERENCES %s(courseCode)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", CourseTableName);
 
         PreparedStatement createCourseTableStatement = connection.prepareStatement(command);
         createCourseTableStatement.executeUpdate();
@@ -122,7 +122,7 @@ public class Database {
         command += String.format("(courseCode CHAR(50),\ntermNumber INT,\ngrade FLOAT,");
         command += String.format("\nstudentId CHAR(50),\nPRIMARY KEY (courseCode, termNumber, studentId),");
         command += String.format("\nFOREIGN KEY (courseCode) REFERENCES %s(courseCode),", CourseTableName);
-        command += String.format("\nFOREIGN KEY (studentId) REFERENCES %s(studentId));", StudentTableName);
+        command += String.format("\nFOREIGN KEY (studentId) REFERENCES %s(studentId)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", StudentTableName);
 
         PreparedStatement createTermTableStatement = connection.prepareStatement(command);
         createTermTableStatement.executeUpdate();
@@ -135,7 +135,7 @@ public class Database {
         command += String.format("\nstatus CHAR(100),\nwantsToRemove BOOLEAN,\nisWaiting BOOLEAN,");
         command += String.format("\nPRIMARY KEY(studentId, courseCode, classCode),");
         command += String.format("\nFOREIGN KEY (courseCode, classCode) REFERENCES %s(courseCode, classCode),", OfferingTableName);
-        command += String.format("\nFOREIGN KEY (studentId) REFERENCES %s(studentId));", StudentTableName);
+        command += String.format("\nFOREIGN KEY (studentId) REFERENCES %s(studentId)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", StudentTableName);
 
         PreparedStatement createAddedOfferingTableStatement = connection.prepareStatement(command);
         createAddedOfferingTableStatement.executeUpdate();
@@ -148,7 +148,7 @@ public class Database {
         command += String.format("\nprerequisitCourseCode CHAR(50),");
         command += String.format("\nPRIMARY KEY(id, mainCourseCode),");
         command += String.format("\nFOREIGN KEY (mainCourseCode) REFERENCES %s(courseCode),", CourseTableName);
-        command += String.format("\nFOREIGN KEY (prerequisitCourseCode) REFERENCES %s(courseCode));", CourseTableName);
+        command += String.format("\nFOREIGN KEY (prerequisitCourseCode) REFERENCES %s(courseCode)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", CourseTableName);
 
         PreparedStatement createPrerequisitesTableStatement = connection.prepareStatement(command);
         createPrerequisitesTableStatement.executeUpdate();

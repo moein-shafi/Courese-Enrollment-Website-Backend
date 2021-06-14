@@ -8,9 +8,9 @@ import java.sql.Statement;
 
 public class ConnectionPool {
     private static BasicDataSource ds = new BasicDataSource();
-    private final static String dbURL = "jdbc:mysql://db:3306/diyar_moein_ca6";
-    private final static String dbUserName = "root";
-    private final static String dbPassword = "123456";  // change this for your system!
+    private final static String dbURL = "jdbc:mysql://db-svc.diyar-ns:3306/diyar_moein_ca6?useUnicode=yes&characterEncoding=UTF-8";
+    private final static String dbUserName = System.getenv("DB_USERNAME");
+    private final static String dbPassword = System.getenv("DB_PASSWORD");  // change this for your system!
 
     static {
         try {
