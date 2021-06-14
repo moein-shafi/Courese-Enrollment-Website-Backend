@@ -1,0 +1,28 @@
+image: quay.io/aminrf/docker-kubectl:latest
+
+services:
+- docker:dind
+
+stages:
+- build
+- deploy
+
+build:
+  image: docker
+  stage: build
+  before_script:
+    - docker login -u $QUAY_USERNAME -p $QUAY_PASSWORD quay.io
+  script:
+    - docker build ./ -t quay.io/kordboydm/ie_backend:$CI_BUILD_REF
+    - docker push quay.io/kordboydm/ie_backend:$CI_BUILD_REF
+    - docker rmi quay.io/kordboydm/ie_backend:$CI_BUILD_REF || true
+  after_script:
+    - docker logout quay.io
+
+deploy:
+  stage: deploy
+  when: manual
+  script:
+    - echo $KUBE_CONFIG | base64 -d > kube.config
+    - http_proxy=$PROXY_SERVER https_porxy=$PROXY_SERVER kubectl --kubeconfig kube.config set image deployment/backend-deployment backend=quay.io/kordboydm/ie_backend:$$CI_BUILD_REF
+    - rm kube.config
